@@ -33,6 +33,7 @@ function DashboardEmp() {
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
 
   const screenshots = ["Screenshot 1", "Screenshot 2", "Screenshot 3"];
+  
 
   useEffect(() => {
     const accessToken = localStorage.getItem("access_token");
