@@ -34,6 +34,7 @@ function Tracker() {
   const [newEmployeeFirstName, setNewEmployeeFirstName] = useState("");
   const [newEmployeeLastName, setNewEmployeeLastName] = useState("");
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
+  const APP_URI = process.env.REACT_APP_API_URL
 
   // --- Profile dropdown menu ---
   const handleLogout = () => {
@@ -93,7 +94,7 @@ function Tracker() {
         },
       };
 
-      const response = await axios.post("/api/Account/AddWorker", data, config);
+      const response = await axios.post(`${APP_URI}/api/Account/AddWorker`, data, config);
       const empData = response.data;
       if (empData.IsRegisterationSuccessFull) {
         messageApi.success("Employee added successfully!");
