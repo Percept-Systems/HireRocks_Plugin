@@ -26,6 +26,8 @@ function Organization() {
   const [context, setContext] = useState(null);
   const [count, setCount] = useState(0);
 
+  const APP_URI = process.env.REACT_APP_API_URL
+
   useEffect(() => {
     if (window.Sfdc && window.Sfdc.canvas) {
       // processing the signed request
@@ -53,7 +55,7 @@ function Organization() {
         setErrors({ organizationError: "Please Fill all the fields!" });
         return;
       }
-      const loginResponse = await axios.post(`/api/Account/Login`, {
+      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
         UserName: organizationName,
         Password: organizationPass,
       });
@@ -93,7 +95,7 @@ function Organization() {
     setLoading(true);
     try {
       // Step 1: Verify OTP
-      const response = await axios.get(`/api/Account/VerifyEmailAddress`, {
+      const response = await axios.get(`${APP_URI}/api/Account/VerifyEmailAddress`, {
         params: { emailVerificationCode: mailContent },
       });
 
@@ -108,7 +110,7 @@ function Organization() {
         const username = email.split("@")[0];
 
         // Step 2: Log in the user
-        const loginResponse = await axios.post(`/api/Account/Login`, {
+        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
           UserName: username,
           Password: organizationPass, // Using the password user entered
           RememberMe: true,
@@ -175,7 +177,7 @@ function Organization() {
       setLoading(true);
       setorgError(false);
       try {
-        const response = await axios.post("/PostOrganization", {
+        const response = await axios.post(`${APP_URI}/PostOrganization`, {
           Email: email,
           Password: organizationPass,
           OrganizationTitle: organizationName,
@@ -235,7 +237,7 @@ function Organization() {
       try {
         // Send API request to add employee
         const response = await axios.post(
-          "/api/Account/AddWorker",
+          `${APP_URI}/api/Account/AddWorker`,
           newEmployee,
           {
             headers: {

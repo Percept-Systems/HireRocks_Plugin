@@ -14,6 +14,7 @@ function EmpLogin() {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const navigate = useNavigate();
+  const APP_URI = process.env.REACT_APP_API_URL
 
   const handleLogin = async () => {
     setLoading(true);
@@ -24,7 +25,7 @@ function EmpLogin() {
         messageApi.error("Please fill both the fields!");
         return;
       }
-      const loginResponse = await axios.post(`/api/Account/Login`, {
+      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
         UserName: email,
         Password: password,
       });
@@ -60,7 +61,7 @@ function EmpLogin() {
     }
     try {
       const response = await fetch(
-        `/api/Account/VerifyEmailAddress?emailVerificationCode=${otp}`
+        `${APP_URI}/api/Account/VerifyEmailAddress?emailVerificationCode=${otp}`
       );
 
       const data = await response.json();
