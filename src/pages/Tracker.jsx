@@ -5,7 +5,6 @@ import {
   Button,
   message,
   Card,
-  Skeleton,
   Modal,
   Input,
   Avatar,
@@ -16,6 +15,8 @@ import { PlusOutlined, UserOutlined } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import screenshot from "../Assets/demo.jpeg";
+import loader from "../Assets/loader.gif";
 
 const { RangePicker } = DatePicker;
 
@@ -34,7 +35,7 @@ function Tracker() {
   const [newEmployeeFirstName, setNewEmployeeFirstName] = useState("");
   const [newEmployeeLastName, setNewEmployeeLastName] = useState("");
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
-  const APP_URI = process.env.REACT_APP_API_URL
+  const APP_URI = process.env.REACT_APP_API_URL;
 
   // --- Profile dropdown menu ---
   const handleLogout = () => {
@@ -94,7 +95,11 @@ function Tracker() {
         },
       };
 
-      const response = await axios.post(`${APP_URI}/api/Account/AddWorker`, data, config);
+      const response = await axios.post(
+        `${APP_URI}/api/Account/AddWorker`,
+        data,
+        config
+      );
       const empData = response.data;
       if (empData.IsRegisterationSuccessFull) {
         messageApi.success("Employee added successfully!");
@@ -119,7 +124,7 @@ function Tracker() {
     }
   };
 
-  const screenshots = ["Screenshot 1", "Screenshot 2", "Screenshot 3"];
+  const screenshots = [screenshot, screenshot, screenshot, screenshot];
 
   return (
     <>
@@ -186,7 +191,7 @@ function Tracker() {
           {/* Search Button */}
           <div className="flex items-end">
             <Button type="primary" block onClick={handleSearch}>
-              🔍 Search
+              Search
             </Button>
           </div>
         </div>
@@ -219,29 +224,53 @@ function Tracker() {
         </Modal>
 
         {/* Results Section */}
-        {showResults && (
+        {showResults ? (
           <>
             <Card className="mb-6 text-center font-semibold" bordered>
               ⏳ Total Hours Burned:{" "}
               <span className="text-blue-600">5 hours</span>
             </Card>
             <h2 className="text-2xl font-semibold mb-4">📸 Screenshots</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {loading
-                ? screenshots.map((_, idx) => (
-                    <Skeleton.Image
-                      key={idx}
-                      active
-                      className="h-[150px] w-full"
-                    />
-                  ))
-                : screenshots.map((screenshot, idx) => (
-                    <Card key={idx} className="text-center shadow-md h-[150px]">
-                      {screenshot}
-                    </Card>
-                  ))}
-            </div>
+
+            {screenshots.length === 0 ? (
+              <div className="text-center text-red-500 font-medium py-10">
+                No items to display!
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {loading
+                  ? screenshots.map((_, idx) => (
+                      <img
+                        key={idx}
+                        src={loader}
+                        alt="loading placeholder"
+                        className="h-[175px] w-full object-cover rounded-lg"
+                      />
+                    ))
+                  : screenshots.map((screenshot, idx) => (
+                      <Card
+                        key={idx}
+                        bodyStyle={{ padding: 0 }}
+                        className="text-center shadow-md flex flex-col items-center justify-start"
+                      >
+                        <img
+                          src={screenshot}
+                          alt={`screenshot-${idx}`}
+                          className="w-full object-cover rounded-t-lg"
+                        />
+                        <div className="w-full flex justify-center items-center gap-x-2 text-sm bg-gray-400 text-white rounded-b-lg py-1">
+                          <span>25-09-2025</span>
+                          <span>4:25PM</span>
+                        </div>
+                      </Card>
+                    ))}
+              </div>
+            )}
           </>
+        ) : (
+          <div className="text-center text-red-500 font-medium py-10">
+            No items to display!
+          </div>
         )}
       </div>
     </>
