@@ -21,12 +21,9 @@ function Organization() {
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
-  const [orgErrorMessage, setorgErrorMessage] = useState("");
-
   const [context, setContext] = useState(null);
-  const [count, setCount] = useState(0);
 
-  const APP_URI = process.env.REACT_APP_API_URL
+  const APP_URI = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
     if (window.Sfdc && window.Sfdc.canvas) {
@@ -95,9 +92,12 @@ function Organization() {
     setLoading(true);
     try {
       // Step 1: Verify OTP
-      const response = await axios.get(`${APP_URI}/api/Account/VerifyEmailAddress`, {
-        params: { emailVerificationCode: mailContent },
-      });
+      const response = await axios.get(
+        `${APP_URI}/api/Account/VerifyEmailAddress`,
+        {
+          params: { emailVerificationCode: mailContent },
+        }
+      );
 
       if (
         response.data?.SuccessMessage ===
@@ -122,7 +122,6 @@ function Organization() {
         }
 
         if (loginData.access_token) {
-          console.log(loginData.access_token);
 
           console.log("Access Token:", loginData.access_token);
           localStorage.setItem("access_token", loginData.access_token);

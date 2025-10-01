@@ -13,7 +13,7 @@ const initialOrg = {
 
 const plainTextStyle = {
   border: "none",
-  background: "transparent",
+  background: "lightgrey",
   boxShadow: "none",
   padding: 0,
   color: "rgba(0,0,0,0.85)",
@@ -66,7 +66,7 @@ const OrgProfile = () => {
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
-          <Col xs={24} sm={16}>
+          <Col xs={24} sm={12}>
             <Form.Item
               name="name"
               label="Organization Name"
@@ -79,7 +79,7 @@ const OrgProfile = () => {
               />
             </Form.Item>
           </Col>
-          <Col xs={24} sm={8}>
+          <Col xs={24} sm={12}>
             <Form.Item name="registrationNumber" label="Licence Number">
               <Input size="large" readOnly style={plainTextStyle} />
             </Form.Item>
