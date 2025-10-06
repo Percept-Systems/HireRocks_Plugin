@@ -22,26 +22,57 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [context, setContext] = useState(null);
+  const [platform, setPlatform] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
+  // useEffect(() => {
+  //   if (window.Sfdc && window.Sfdc.canvas) {
+  //     // processing the signed request
+  //     window.Sfdc.canvas.onReady(() => {
+  //       const signedRequest = window.Sfdc.canvas.oauth.token();
+  //       if (signedRequest) {
+  //         // ToDo (handle request)
+  //         setContext(signedRequest);
+  //       } else {
+  //         setContext("No signed request received");
+  //       }
+  //     });
+  //   } else {
+  //     console.error("Salesforce Canvas SDK not loaded.");
+  //     setContext("Salesforce Canvas SDK not loaded.");
+  //   }
+  // }, []);
+
+
   useEffect(() => {
-    if (window.Sfdc && window.Sfdc.canvas) {
-      // processing the signed request
-      window.Sfdc.canvas.onReady(() => {
-        const signedRequest = window.Sfdc.canvas.oauth.token();
-        if (signedRequest) {
-          // ToDo (handle request)
-          setContext(signedRequest);
-        } else {
-          setContext("No signed request received");
-        }
-      });
-    } else {
-      console.error("Salesforce Canvas SDK not loaded.");
-      setContext("Salesforce Canvas SDK not loaded.");
-    }
-  }, []);
+  console.log("Checking CRM platform...");
+
+  if (window.Sfdc && window.Sfdc.canvas) {
+    console.log("Salesforce Canvas SDK detected.");
+    window.Sfdc.canvas.onReady(() => {
+      const signedRequest = window.Sfdc.canvas.oauth.token();
+      if (signedRequest) {
+        console.log("Salesforce signedRequest received:", signedRequest);
+        setPlatform("salesforce");
+        setContext(signedRequest);
+      } else {
+        console.warn("Salesforce Canvas SDK loaded, but no signedRequest received.");
+        setPlatform("salesforce");
+        setContext("No signed request received");
+      }
+    });
+  } else if (document.referrer.includes("crm.zoho")) {
+    console.log("Zoho CRM detected via referrer:", document.referrer);
+    setPlatform("zoho");
+    setContext("Zoho detected via referrer");
+  } else {
+    console.warn("CRM platform could not be detected.");
+    setPlatform("unknown");
+    setContext("Could not detect platform");
+  }
+}, []);
+
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
