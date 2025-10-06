@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import "@salesforce/canvas-js-sdk";
+// import "@salesforce/canvas-js-sdk";
 
 function Organization() {
   const navigate = useNavigate();
