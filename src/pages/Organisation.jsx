@@ -27,60 +27,14 @@ function Organization() {
 
 
   useEffect(() => {
-    console.log("Detecting CRM platform...");
+    const params = new URLSearchParams(window.location.search);
+    const platform = params.get("platform");
 
-    // --- SALESFORCE DETECTION ---
-    if (window.Sfdc && window.Sfdc.canvas) {
-      console.log("Salesforce Canvas detected");
-      
-      const client = window.Sfdc.canvas.oauth.client();
-      
-      if (client) {
-        setPlatform("salesforce");
-        setCrmContext({
-          userId: client.userId,
-          orgId: client.organizationId,
-          instanceUrl: client.instanceUrl,
-        });
-        console.log("Salesforce Context:", client);
-      }
-      return;
+    if (platform === "salesforce") {
+      console.log("Running Salesforce-specific logic");
+    } else if (platform === "zoho") {
+      console.log("Running Zoho-specific logic");
     }
-
-    // Fallback: Check referrer for Salesforce
-    if (document.referrer && 
-        (document.referrer.includes("salesforce.com") || 
-         document.referrer.includes("force.com"))) {
-      console.log("Salesforce detected via referrer");
-      setPlatform("salesforce");
-      setCrmContext({ referrer: document.referrer });
-      return;
-    }
-
-    // --- ZOHO DETECTION ---
-    if (window.ZOHO && window.ZOHO.CRM) {
-      console.log("Zoho CRM SDK detected");
-      
-      window.ZOHO.embeddedApp.init().then(() => {
-        setPlatform("zoho");
-        setCrmContext({ sdkInitialized: true });
-      });
-      return;
-    }
-
-    // Fallback: Check referrer for Zoho
-    if (document.referrer && document.referrer.includes("zoho")) {
-      console.log("Zoho detected via referrer");
-      setPlatform("zoho");
-      setCrmContext({ referrer: document.referrer });
-      return;
-    }
-
-    // --- DIRECT ACCESS ---
-    console.log("⚠️ No CRM platform detected - direct access");
-    setPlatform("direct");
-    setCrmContext(null);
-
   }, []);
 
   // Handle View Click (Step 1 for Viewing Organization)
