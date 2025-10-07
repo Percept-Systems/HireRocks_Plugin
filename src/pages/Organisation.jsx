@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import "@salesforce/canvas-js-sdk";
+// import "@salesforce/canvas-js-sdk";
 
 function Organization() {
   const navigate = useNavigate();
@@ -46,32 +46,79 @@ function Organization() {
 
 
   useEffect(() => {
-  console.log("Checking CRM platform...");
-
-  if (window.Sfdc && window.Sfdc.canvas) {
-    console.log("Salesforce Canvas SDK detected.");
-    window.Sfdc.canvas.onReady(() => {
-      const signedRequest = window.Sfdc.canvas.oauth.token();
-      if (signedRequest) {
-        console.log("Salesforce signedRequest received:", signedRequest);
-        setPlatform("salesforce");
-        setContext(signedRequest);
-      } else {
-        console.warn("Salesforce Canvas SDK loaded, but no signedRequest received.");
-        setPlatform("salesforce");
-        setContext("No signed request received");
+    console.log("Checking CRM platform...");
+  
+    // --- SALESFORCE DETECTION ---
+    if (window.Sfdc && window.Sfdc.canvas) {
+      console.log("Salesforce Canvas SDK detected.");
+  
+      window.Sfdc.canvas.onReady(() => {
+        const signedRequest = window.Sfdc.canvas.oauth.token();
+  
+        if (signedRequest && signedRequest.client) {
+          const token = signedRequest.client.oauthToken;
+          const userId = signedRequest.client.userId;
+          const orgId = signedRequest.client.organizationId;
+  
+          console.log("Salesforce signedRequest received:", signedRequest);
+          console.log("Salesforce Details:");
+          console.log("   - Access Token:", token);
+          console.log("   - User ID:", userId);
+          console.log("   - Org ID:", orgId);
+  
+          setPlatform("salesforce");
+          setContext({
+            platform: "salesforce",
+            token,
+            userId,
+            orgId,
+            signedRequest,
+          });
+        } else {
+          console.warn("⚠️ Salesforce Canvas SDK loaded, but no valid signedRequest received.");
+          setPlatform("salesforce");
+          setContext("Salesforce SDK loaded but no signed request found");
+        }
+      });
+  
+      return;
+    }
+  
+    // --- ZOHO DETECTION ---
+    if (document.referrer && document.referrer.includes("crm.zoho")) {
+      console.log("Zoho CRM detected via referrer:", document.referrer);
+  
+      try {
+        // Optional: extract org ID or tab info if available in the URL
+        const urlParams = new URL(document.referrer).pathname.split("/");
+        const orgId = urlParams.find((segment) => segment.startsWith("org")) || "unknown";
+  
+        console.log("Zoho Details:");
+        console.log("   - Org ID:", orgId);
+        console.log("   - Referrer:", document.referrer);
+  
+        // You could later enhance this with Zoho's JS SDK when available
+        setPlatform("zoho");
+        setContext({
+          platform: "zoho",
+          orgId,
+          referrer: document.referrer,
+        });
+      } catch (error) {
+        console.error("Error parsing Zoho referrer:", error);
+        setPlatform("zoho");
+        setContext("Zoho detected but error parsing details");
       }
-    });
-  } else if (document.referrer.includes("crm.zoho")) {
-    console.log("Zoho CRM detected via referrer:", document.referrer);
-    setPlatform("zoho");
-    setContext("Zoho detected via referrer");
-  } else {
-    console.warn("CRM platform could not be detected.");
+  
+      return;
+    }
+  
+    // --- UNKNOWN / DIRECT ACCESS ---
+    console.warn("⚠️ CRM platform could not be detected. Possibly direct web access.");
     setPlatform("unknown");
-    setContext("Could not detect platform");
-  }
-}, []);
+    setContext("Could not detect CRM platform (accessed directly or SDK missing).");
+  }, []);
+  
 
 
   // Handle View Click (Step 1 for Viewing Organization)
