@@ -49,71 +49,37 @@ function Organization() {
     console.log("Checking CRM platform...");
   
     // --- SALESFORCE DETECTION ---
-    // if (window.Sfdc && window.Sfdc.canvas) {
-    //   console.log("Salesforce Canvas SDK detected.");
+    if (window.Sfdc && window.Sfdc.canvas) {
+      console.log("Salesforce Canvas SDK detected.");
   
-    //   window.Sfdc.canvas.onReady(() => {
-    //     const signedRequest = window.Sfdc.canvas.oauth.token();
+      window.Sfdc.canvas.onReady(() => {
+        const signedRequest = window.Sfdc.canvas.oauth.token();
   
-    //     if (signedRequest && signedRequest.client) {
-    //       const token = signedRequest.client.oauthToken;
-    //       const userId = signedRequest.client.userId;
-    //       const orgId = signedRequest.client.organizationId;
+        if (signedRequest && signedRequest.client) {
+          const token = signedRequest.client.oauthToken;
+          const userId = signedRequest.client.userId;
+          const orgId = signedRequest.client.organizationId;
   
-    //       console.log("Salesforce signedRequest received:", signedRequest);
-    //       console.log("Salesforce Details:");
-    //       console.log("   - Access Token:", token);
-    //       console.log("   - User ID:", userId);
-    //       console.log("   - Org ID:", orgId);
+          console.log("Salesforce signedRequest received:", signedRequest);
+          console.log("Salesforce Details:");
+          console.log("   - Access Token:", token);
+          console.log("   - User ID:", userId);
+          console.log("   - Org ID:", orgId);
   
-    //       setPlatform("salesforce");
-    //       setContext({
-    //         platform: "salesforce",
-    //         token,
-    //         userId,
-    //         orgId,
-    //         signedRequest,
-    //       });
-    //     } else {
-    //       console.warn("⚠️ Salesforce Canvas SDK loaded, but no valid signedRequest received.");
-    //       setPlatform("salesforce");
-    //       setContext("Salesforce SDK loaded but no signed request found");
-    //     }
-    //   });
-  
-    //   return;
-    // }
-    if (window.location.href.includes("lightning.force.com")) {
-      console.log("Salesforce Lightning detected via URL domain.");
-  
-      try {
-        const hostname = window.location.hostname; // e.g. orgfarm-a31c75654e-dev-ed.develop.lightning.force.com
-        const orgAlias = hostname.split(".")[0]; // orgfarm-a31c75654e-dev-ed
-        const environment = hostname.split(".")[1]; // develop or my.salesforce.com etc.
-  
-        console.log("Salesforce Lightning Details:");
-        console.log("   - Org Alias:", orgAlias);
-        console.log("   - Environment:", environment);
-        console.log("   - Full Hostname:", hostname);
-  
-        setPlatform("salesforce");
-        setContext({
-          platform: "salesforce",
-          type: "lightning",
-          orgAlias,
-          environment,
-          hostname,
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.error("Error extracting Salesforce Lightning details:", error);
-        setPlatform("salesforce");
-        setContext({
-          platform: "salesforce",
-          type: "lightning",
-          status: "error extracting domain info",
-        });
-      }
+          setPlatform("salesforce");
+          setContext({
+            platform: "salesforce",
+            token,
+            userId,
+            orgId,
+            signedRequest,
+          });
+        } else {
+          console.warn("⚠️ Salesforce Canvas SDK loaded, but no valid signedRequest received.");
+          setPlatform("salesforce");
+          setContext("Salesforce SDK loaded but no signed request found");
+        }
+      });
   
       return;
     }
