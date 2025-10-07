@@ -27,9 +27,21 @@ function Organization() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const detectedPlatform = params.get("platform");
+    const detectedPlatform = params.get("platform") || "unknown"; // default if missing
     setPlatform(detectedPlatform);
+
+    // Log to check platform detection
+    console.log("Detected platform:", detectedPlatform);
+
+    if (detectedPlatform === "salesforce") {
+      console.log("Running Salesforce-specific logic");
+    } else if (detectedPlatform === "zoho") {
+      console.log("Running Zoho-specific logic");
+    } else {
+      console.log("Running default logic");
+    }
   }, []);
+
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
