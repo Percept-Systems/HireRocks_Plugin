@@ -21,20 +21,14 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [crmContext, setCrmContext] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const platform = params.get("platform");
-
-    if (platform === "salesforce") {
-      console.log("Running Salesforce-specific logic");
-    } else if (platform === "zoho") {
-      console.log("Running Zoho-specific logic");
-    }
+    const detectedPlatform = params.get("platform");
+    setPlatform(detectedPlatform);
   }, []);
 
   // Handle View Click (Step 1 for Viewing Organization)
@@ -174,6 +168,7 @@ function Organization() {
           Password: organizationPass,
           OrganizationTitle: organizationName,
           IsRegisterationSuccessFull: true,
+          Platform: platform,
         });
         console.log(response);
         if (response.status == 200) {
