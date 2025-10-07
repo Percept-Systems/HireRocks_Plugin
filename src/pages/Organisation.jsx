@@ -27,20 +27,23 @@ function Organization() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const detectedPlatform = params.get("platform") || "unknown"; // default if missing
-    setPlatform(detectedPlatform);
-
-    // Log to check platform detection
-    console.log("Detected platform:", detectedPlatform);
-
-    if (detectedPlatform === "salesforce") {
-      console.log("Running Salesforce-specific logic");
-    } else if (detectedPlatform === "zoho") {
-      console.log("Running Zoho-specific logic");
-    } else {
-      console.log("Running default logic");
+    let detectedPlatform = params.get("platform");
+  
+    if (!detectedPlatform) {
+      const ref = document.referrer || "";
+      if (ref.includes("force.com") || ref.includes("salesforce.com")) {
+        detectedPlatform = "salesforce";
+      } else if (ref.includes("zoho.com") || ref.includes("zoho")) {
+        detectedPlatform = "zoho";
+      } else {
+        detectedPlatform = "unknown";
+      }
     }
+  
+    console.log("Detected platform:", detectedPlatform);
+    setPlatform(detectedPlatform);
   }, []);
+  
 
 
   // Handle View Click (Step 1 for Viewing Organization)
