@@ -20,16 +20,14 @@ function Organization() {
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
-  const [ platform, setPlatform] = useState(null);
-
+  const [platform, setPlatform] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
-
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     let detectedPlatform = params.get("platform");
-  
+
     if (!detectedPlatform) {
       const ref = document.referrer || "";
       if (ref.includes("force.com") || ref.includes("salesforce.com")) {
@@ -40,30 +38,10 @@ function Organization() {
         detectedPlatform = "unknown";
       }
     }
-  
+
     console.log("Detected platform:", detectedPlatform);
     setPlatform(detectedPlatform);
   }, []);
-
-
-
-  useEffect(() => {
-    window.ZOHO.CRM.init().then(() => {
-      console.log("Widgets SDK initialized");
-    
-      window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
-        .then((response) => {
-          if (response.status === "success") {
-            console.log("CRM Users:", response.data);
-          } else {
-            console.error("Error fetching users:", response.message);
-          }
-        })
-        .catch(err => console.error("API error:", err));
-    });
-    
-  }, []);
-  
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -72,7 +50,7 @@ function Organization() {
           const res = await window.ZOHO.CRM.API.getAllRecords({
             Entity: "Leads",
             page: 1,
-            per_page: 200
+            per_page: 200,
           });
           if (res.status === "success") {
             console.log("Leads:", res.data);
@@ -87,11 +65,9 @@ function Organization() {
         setTimeout(fetchLeads, 500); // retry after 0.5s
       }
     };
-  
+
     fetchLeads();
   }, []);
-  
-
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
