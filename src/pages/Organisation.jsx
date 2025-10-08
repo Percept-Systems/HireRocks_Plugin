@@ -45,29 +45,30 @@ function Organization() {
 
   useEffect(() => {
     const fetchLeads = async () => {
-      if (window.ZOHO && window.ZOHO.CRM && window.ZOHO.CRM.API) {
+      if (window.ZOHO && window.ZOHO.CRM && window.ZOHO.CRM.HTTP) {
         try {
-          const res = await window.ZOHO.CRM.API.getAllRecords({
-            Entity: "Leads",
-            page: 1,
-            per_page: 200,
+          // Fetch Leads via Zoho CRM REST API
+          const res = await window.ZOHO.CRM.HTTP.get({
+            url: "/crm/v2/Leads?page=1&per_page=200",
           });
-          if (res.status === "success") {
-            console.log("Leads:", res.data);
+  
+          if (res.data) {
+            console.log("Leads:", res.data); // logs array of Leads
           } else {
-            console.error("Error fetching leads:", res.message);
+            console.warn("No Leads found in response");
           }
         } catch (err) {
-          console.error("API call failed:", err);
+          console.error("HTTP API call failed:", err);
         }
       } else {
-        console.warn("ZOHO SDK not ready yet");
-        setTimeout(fetchLeads, 500); // retry after 0.5s
+        console.warn("ZOHO SDK not ready yet, retrying...");
+        setTimeout(fetchLeads, 500); // retry until SDK is ready
       }
     };
-
+  
     fetchLeads();
   }, []);
+  
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
