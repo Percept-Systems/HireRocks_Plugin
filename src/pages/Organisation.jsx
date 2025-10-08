@@ -21,6 +21,8 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [ platform, setPlatform] = useState(null);
+  const [ ZohoUser, setZohoUser] = useState(null);
+
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
