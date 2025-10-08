@@ -74,6 +74,7 @@ function Organization() {
 
   useEffect(() => {
     console.log("Initializing Salesforce Canvas SDK...");
+    console.log("Window object:",window)
 
     if (window.Sfdc && window.Sfdc.canvas) {
       window.Sfdc.canvas.client.init();
