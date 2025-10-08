@@ -20,7 +20,9 @@ function Organization() {
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
-  const [platform, setPlatform] = useState(null);
+  const [ platform, setPlatform] = useState(null);
+  const [ ZohoUser, setZohoUser] = useState(null);
+
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -43,6 +45,41 @@ function Organization() {
     console.log("Detected platform:", detectedPlatform);
     setPlatform(detectedPlatform);
   }, []);
+
+
+  useEffect(() => {
+    // Wait for Zoho SDK to be ready
+    const initZoho = async () => {
+      if (!window.ZOHO) {
+        console.error("Zoho SDK not loaded");
+        return;
+      }
+  
+      window.ZOHO.embeddedApp.on("PageLoad", function (data) {
+        console.log("Zoho Page Context:", data);
+      });
+  
+      await window.ZOHO.embeddedApp.init();
+  
+      // Now fetch logged-in user
+      const userResponse = await window.ZOHO.CRM.API.getUser();
+      const crmUser = userResponse.users[0];
+      console.log("Logged-in CRM User:", crmUser);
+  
+      // Optionally store in state or localStorage
+      setZohoUser({
+        id: crmUser.id,
+        email: crmUser.email,
+        name: crmUser.full_name,
+      });
+    };
+  
+    initZoho();
+  }, []);
+
+
+  
+  
   
 
 
