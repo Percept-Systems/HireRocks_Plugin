@@ -73,8 +73,33 @@ function Organization() {
 
 
   useEffect(() => {
-    // Function to fetch users from Salesforce
-    const fetchSalesforceUsers = async (accessToken, instanceUrl) => {
+    const waitForCanvasSDK = () => {
+      if (window.SfdcCanvasSDK) {
+        initCanvas();
+      } else {
+        console.log("Waiting for Canvas SDK...");
+        setTimeout(waitForCanvasSDK, 100); // check every 100ms
+      }
+    };
+
+    const initCanvas = () => {
+      console.log("Canvas SDK loaded, initializing...");
+      window.SfdcCanvasSDK.oauth.callback = (oauthData) => {
+        const accessToken = oauthData.accessToken;
+        const instanceUrl = oauthData.instanceUrl;
+
+        if (accessToken && instanceUrl) {
+          fetchUsers(accessToken, instanceUrl);
+        } else {
+          console.error("No OAuth token or instance URL found.");
+          setLoading(false);
+        }
+      };
+
+      window.SfdcCanvasSDK.oauth.refreshToken();
+    };
+
+    const fetchUsers = async (accessToken, instanceUrl) => {
       try {
         const query = "SELECT Id, Name, Email, Username FROM User";
         const response = await fetch(
@@ -87,47 +112,18 @@ function Organization() {
           }
         );
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
-
         const data = await response.json();
         console.log("Salesforce Users:", data.records);
         setUsers(data.records);
       } catch (err) {
-        console.error("Error fetching Salesforce users:", err);
+        console.error("Error fetching users:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    // Function to initialize Canvas SDK
-    const initCanvasSDK = () => {
-      if (window.SfdcCanvasSDK) {
-        window.SfdcCanvasSDK.oauth.callback = (oauthData) => {
-          const accessToken = oauthData.accessToken;
-          const instanceUrl = oauthData.instanceUrl;
-
-          if (accessToken && instanceUrl) {
-            console.log("Access Token:", accessToken)
-            fetchSalesforceUsers(accessToken, instanceUrl);
-          } else {
-            console.error("No OAuth token or instance URL found in Canvas SDK.");
-            setLoading(false);
-          }
-        };
-
-        // Trigger OAuth callback (Canvas auto-passes signed request)
-        window.SfdcCanvasSDK.oauth.refreshToken();
-      } else {
-        console.error("Canvas SDK not loaded yet.");
-        setLoading(false);
-      }
-    };
-
-    initCanvasSDK();
+    waitForCanvasSDK(); // start polling
   }, []);
-
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
