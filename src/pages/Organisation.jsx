@@ -49,12 +49,19 @@ function Organization() {
 
   useEffect(() => {
     if (window.ZOHO) {
-      window.ZOHO.embeddedApp.on("PageLoad", async function(data) {
-        console.log("Embedded app loaded in Zoho CRM:", data);
+      window.ZOHO.CRM.init().then(() => {
+        console.log("Widgets SDK initialized");
   
-        // Get current logged-in user info
-        const user = await window.ZOHO.CRM.USER.getCurrentUser();
-        console.log("CRM User Info:", user);
+        // Make sure API call happens after init is complete
+        window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
+          .then((response) => {
+            if (response.status === "success") {
+              console.log("CRM Users:", response.data);
+            } else {
+              console.error("Error fetching users:", response.message);
+            }
+          })
+          .catch((err) => console.error("API error:", err));
       });
     }
   }, []);
