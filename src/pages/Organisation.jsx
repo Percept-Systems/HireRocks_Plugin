@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import { canvas } from "@salesforce/canvas-js-sdk";
-import jwtDecode from "jwt-decode";
 
 function Organization() {
   const navigate = useNavigate();
@@ -75,31 +73,26 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    // Check if Canvas SDK is loaded
     if (window.Sfdc && window.Sfdc.canvas && window.Sfdc.canvas.client) {
-      // Initialize Canvas SDK
-      window.Sfdc.canvas.client.initialize((signedRequest) => {
-        if (!signedRequest) {
-          console.error("Canvas SDK: No signed request received");
-          return;
+      // Use ajax method to make a Salesforce API call
+      window.Sfdc.canvas.client.ajax(
+        "/services/data/v56.0/sobjects/Account/",
+        "GET",
+        {},
+        (response) => {
+          if (response && response.status === 200) {
+            const data = JSON.parse(response.responseText);
+            console.log("Accounts:", data.records || data);
+            setAccounts(data.records || []);
+          } else {
+            console.error("Salesforce API error", response);
+          }
         }
+      );
 
-        console.log("Raw Signed Request:", signedRequest);
-
-        try {
-          // Decode the signed request payload
-          const parts = signedRequest.split(".");
-          const payload = parts[1];
-          const decoded = JSON.parse(atob(payload));
-
-          console.log("Decoded Signed Request:", decoded);
-          setContext(decoded);
-
-          // Fetch Salesforce data using OAuth token
-          fetchSalesforceAccounts(decoded.oauthToken, decoded.instance_url);
-        } catch (err) {
-          console.error("Failed to decode signed request:", err);
-        }
+      // You can also listen to resize or other events
+      window.Sfdc.canvas.parent.on("resize", (event) => {
+        console.log("Canvas resized", event.height, event.width);
       });
     } else {
       console.warn(
@@ -107,25 +100,6 @@ function Organization() {
       );
     }
   }, []);
-
-  const fetchSalesforceAccounts = async (oauthToken, instanceUrl) => {
-    try {
-      const response = await fetch(
-        `${instanceUrl}/services/data/v56.0/sobjects/Account/`,
-        {
-          headers: {
-            Authorization: `Bearer ${oauthToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const data = await response.json();
-      console.log("Accounts:", data.records || data);
-      setAccounts(data.records || []);
-    } catch (err) {
-      console.error("Salesforce API error:", err);
-    }
-  };
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
