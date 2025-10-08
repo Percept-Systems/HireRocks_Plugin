@@ -25,6 +25,7 @@ function Organization() {
   const [platform, setPlatform] = useState(null);
   const [users, setUsers] = useState([]);
   const [context, setContext] = useState(null);
+  const [accounts, setAccounts] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -74,35 +75,40 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    // Initialize Canvas SDK
-    canvas.client.initialize((signedRequest) => {
-      if (!signedRequest) {
-        console.error("Canvas SDK failed: No signed request");
-        return;
-      }
+    // Check if Canvas SDK is loaded
+    if (window.Sfdc && window.Sfdc.canvas && window.Sfdc.canvas.client) {
+      // Initialize Canvas SDK
+      window.Sfdc.canvas.client.initialize((signedRequest) => {
+        if (!signedRequest) {
+          console.error("Canvas SDK: No signed request received");
+          return;
+        }
 
-      console.log("Raw Signed Request:", signedRequest);
+        console.log("Raw Signed Request:", signedRequest);
 
-      try {
-        // Decode signed request payload
-        // Salesforce sends signedRequest as JWT: header.payload.signature
-        const parts = signedRequest.split(".");
-        const payload = parts[1];
-        const decoded = JSON.parse(atob(payload)); // decode base64 payload
+        try {
+          // Decode the signed request payload
+          const parts = signedRequest.split(".");
+          const payload = parts[1];
+          const decoded = JSON.parse(atob(payload));
 
-        console.log("Decoded Signed Request:", decoded);
+          console.log("Decoded Signed Request:", decoded);
+          setContext(decoded);
 
-        setContext(decoded);
-
-        // Example: Call Salesforce API
-        fetchSalesforceData(decoded.oauthToken, decoded.instance_url);
-      } catch (err) {
-        console.error("Failed to decode signed request:", err);
-      }
-    });
+          // Fetch Salesforce data using OAuth token
+          fetchSalesforceAccounts(decoded.oauthToken, decoded.instance_url);
+        } catch (err) {
+          console.error("Failed to decode signed request:", err);
+        }
+      });
+    } else {
+      console.warn(
+        "Canvas SDK not loaded or app not running inside Salesforce iframe"
+      );
+    }
   }, []);
 
-  const fetchSalesforceData = async (oauthToken, instanceUrl) => {
+  const fetchSalesforceAccounts = async (oauthToken, instanceUrl) => {
     try {
       const response = await fetch(
         `${instanceUrl}/services/data/v56.0/sobjects/Account/`,
@@ -114,12 +120,12 @@ function Organization() {
         }
       );
       const data = await response.json();
-      console.log("Accounts:", data);
+      console.log("Accounts:", data.records || data);
+      setAccounts(data.records || []);
     } catch (err) {
       console.error("Salesforce API error:", err);
     }
   };
-
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
