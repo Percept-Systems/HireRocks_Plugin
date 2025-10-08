@@ -22,8 +22,6 @@ function Organization() {
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
   const [users, setUsers] = useState([]);
-  const [context, setContext] = useState(null);
-  const [accounts, setAccounts] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -54,7 +52,7 @@ function Organization() {
           const res = await window.ZOHO.CRM.HTTP.get({
             url: "/crm/v2/Leads?page=1&per_page=200",
           });
-
+  
           if (res.data) {
             console.log("Leads:", res.data); // logs array of Leads
           } else {
@@ -68,38 +66,11 @@ function Organization() {
         setTimeout(fetchLeads, 500); // retry until SDK is ready
       }
     };
-
+  
     fetchLeads();
   }, []);
+  
 
-  useEffect(() => {
-    if (window.Sfdc && window.Sfdc.canvas && window.Sfdc.canvas.client) {
-      // Use ajax method to make a Salesforce API call
-      window.Sfdc.canvas.client.ajax(
-        "/services/data/v56.0/sobjects/Account/",
-        "GET",
-        {},
-        (response) => {
-          if (response && response.status === 200) {
-            const data = JSON.parse(response.responseText);
-            console.log("Accounts:", data.records || data);
-            setAccounts(data.records || []);
-          } else {
-            console.error("Salesforce API error", response);
-          }
-        }
-      );
-
-      // You can also listen to resize or other events
-      window.Sfdc.canvas.parent.on("resize", (event) => {
-        console.log("Canvas resized", event.height, event.width);
-      });
-    } else {
-      console.warn(
-        "Canvas SDK not loaded or app not running inside Salesforce iframe"
-      );
-    }
-  }, []);
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
