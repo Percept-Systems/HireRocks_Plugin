@@ -21,7 +21,9 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [accessToken, setAccessToken] = useState(null);
+  const [instanceUrl, setInstanceUrl] = useState(null);
+  const [leads, setLeads] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -70,6 +72,61 @@ function Organization() {
     fetchLeads();
   }, []);
   
+
+  useEffect(() => {
+    console.log('Waiting for Salesforce signed_request...');
+
+    window.addEventListener('message', (event) => {
+      // Ensure message is from Salesforce
+      if (event.origin.includes('salesforce.com')) {
+        console.log('Received postMessage from Salesforce:', event.data);
+
+        const data = event.data;
+        if (data && data.signed_request) {
+          try {
+            // Decode the signed_request payload (Base64)
+            const payload = JSON.parse(atob(data.signed_request.split('.')[1]));
+            console.log('Decoded signed_request payload:', payload);
+
+            setAccessToken(payload.client.oauthToken);
+            setInstanceUrl(payload.client.instanceUrl);
+
+            console.log('Access Token:', payload.client.oauthToken);
+            console.log('Instance URL:', payload.client.instanceUrl);
+          } catch (err) {
+            console.error('Error decoding signed_request:', err);
+          }
+        }
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (accessToken && instanceUrl) {
+      console.log('Fetching leads...');
+      fetchLeads(accessToken, instanceUrl);
+    }
+  }, [accessToken, instanceUrl]);
+
+  const fetchLeads = async (token, instance) => {
+    try {
+      const res = await fetch(
+        `${instance}/services/data/v57.0/query?q=SELECT+Id,Name,Email+FROM+Lead+LIMIT+10`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const data = await res.json();
+      console.log('Fetched Leads:', data.records);
+      setLeads(data.records);
+    } catch (err) {
+      console.error('Error fetching leads:', err);
+    }
+  };
+
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
