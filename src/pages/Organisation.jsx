@@ -47,24 +47,24 @@ function Organization() {
 
 
 
-  useEffect(() => {
-    if (window.ZOHO) {
-      window.ZOHO.CRM.init().then(() => {
-        console.log("Widgets SDK initialized");
+  // useEffect(() => {
+  //   if (window.ZOHO) {
+  //     window.ZOHO.CRM.init().then(() => {
+  //       console.log("Widgets SDK initialized");
   
-        // Make sure API call happens after init is complete
-        window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
-          .then((response) => {
-            if (response.status === "success") {
-              console.log("CRM Users:", response.data);
-            } else {
-              console.error("Error fetching users:", response.message);
-            }
-          })
-          .catch((err) => console.error("API error:", err));
-      });
-    }
-  }, []);
+  //       // Make sure API call happens after init is complete
+  //       window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
+  //         .then((response) => {
+  //           if (response.status === "success") {
+  //             console.log("CRM Users:", response.data);
+  //           } else {
+  //             console.error("Error fetching users:", response.message);
+  //           }
+  //         })
+  //         .catch((err) => console.error("API error:", err));
+  //     });
+  //   }
+  // }, []);
   
   
  
