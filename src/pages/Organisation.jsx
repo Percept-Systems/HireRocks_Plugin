@@ -45,15 +45,6 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-  
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://crm.zoho.com/crm/org60047383233/websdk/js/sdk.js";
-    script.onload = () => {
-      console.log("ZSDK loaded");
-    };
-    document.body.appendChild(script);
-  }, []);
 
 
   useEffect(() => {
