@@ -21,7 +21,6 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [ platform, setPlatform] = useState(null);
-  const [ ZohoUser, setZohoUser] = useState(null);
 
 
   const APP_URI = process.env.REACT_APP_API_URL;
@@ -46,43 +45,31 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-
+  
   useEffect(() => {
-    const fetchZohoUser = async () => {
-      // Check if Zoho SDK is available
-      if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
-        console.warn("ZOHO SDK not loaded yet");
-        return;
-      }
-
-      try {
-        // Initialize the embedded app
-        await window.ZOHO.embeddedApp.init();
-
-        // Optional: listen for page load context
-        window.ZOHO.embeddedApp.on("PageLoad", (data) => {
-          console.log("PageLoad context:", data);
-        });
-
-        // Fetch the logged-in CRM user
-        const response = await window.ZOHO.CRM.API.getUser();
-
-        if (response.users && response.users.length > 0) {
-          const crmUser = response.users[0];
-          console.log("Logged-in CRM User:", crmUser);
-        } else {
-          console.warn("No user data returned from Zoho CRM");
-        }
-      } catch (err) {
-        console.error("Error fetching Zoho user:", err);
-      }
+    const script = document.createElement("script");
+    script.src = "https://crm.zoho.com/crm/org60047383233/websdk/js/sdk.js";
+    script.onload = () => {
+      console.log("ZSDK loaded");
     };
-
-    fetchZohoUser();
+    document.body.appendChild(script);
   }, []);
 
 
+  useEffect(() => {
+    if (window.ZOHO) {
+      window.ZOHO.embeddedApp.on("PageLoad", async function(data) {
+        console.log("Embedded app loaded in Zoho CRM:", data);
   
+        // Get current logged-in user info
+        const user = await window.ZOHO.CRM.USER.getCurrentUser();
+        console.log("CRM User Info:", user);
+      });
+    }
+  }, []);
+  
+  
+ 
   
   
 
