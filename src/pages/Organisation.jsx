@@ -54,7 +54,7 @@ function Organization() {
           const res = await window.ZOHO.CRM.HTTP.get({
             url: "/crm/v2/Leads?page=1&per_page=200",
           });
-  
+
           if (res.data) {
             console.log("Leads:", res.data); // logs array of Leads
           } else {
@@ -68,42 +68,37 @@ function Organization() {
         setTimeout(fetchLeads, 500); // retry until SDK is ready
       }
     };
-  
+
     fetchLeads();
   }, []);
-  
 
   useEffect(() => {
-    console.log('Waiting for Salesforce signed_request...');
+    console.log("Initializing Salesforce Canvas SDK...");
 
-    window.addEventListener('message', (event) => {
-      // Ensure message is from Salesforce
-      if (event.origin.includes('salesforce.com')) {
-        console.log('Received postMessage from Salesforce:', event.data);
+    if (window.Sfdc && window.Sfdc.canvas) {
+      window.Sfdc.canvas.client.init();
 
-        const data = event.data;
-        if (data && data.signed_request) {
-          try {
-            // Decode the signed_request payload (Base64)
-            const payload = JSON.parse(atob(data.signed_request.split('.')[1]));
-            console.log('Decoded signed_request payload:', payload);
+      // Subscribe to signed_request event
+      window.Sfdc.canvas.client.subscribe(window, "signedRequest", (data) => {
+        console.log("Received signed request from Salesforce:", data);
 
-            setAccessToken(payload.client.oauthToken);
-            setInstanceUrl(payload.client.instanceUrl);
+        const token = data.oauthToken;
+        const instance = data.instanceUrl;
 
-            console.log('Access Token:', payload.client.oauthToken);
-            console.log('Instance URL:', payload.client.instanceUrl);
-          } catch (err) {
-            console.error('Error decoding signed_request:', err);
-          }
-        }
-      }
-    });
+        console.log("Access Token:", token);
+        console.log("Instance URL:", instance);
+
+        setAccessToken(token);
+        setInstanceUrl(instance);
+      });
+    } else {
+      console.error("Salesforce Canvas SDK not loaded.");
+    }
   }, []);
 
   useEffect(() => {
     if (accessToken && instanceUrl) {
-      console.log('Fetching leads...');
+      console.log("Fetching leads...");
       fetchLeads(accessToken, instanceUrl);
     }
   }, [accessToken, instanceUrl]);
@@ -115,18 +110,17 @@ function Organization() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
       const data = await res.json();
-      console.log('Fetched Leads:', data.records);
+      console.log("Fetched Leads:", data.records);
       setLeads(data.records);
     } catch (err) {
-      console.error('Error fetching leads:', err);
+      console.error("Error fetching leads:", err);
     }
   };
-
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
