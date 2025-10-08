@@ -48,33 +48,37 @@ function Organization() {
 
 
   useEffect(() => {
-    // Wait for Zoho SDK to be ready
-    const initZoho = async () => {
-      if (!window.ZOHO) {
-        console.error("Zoho SDK not loaded");
+    const fetchZohoUser = async () => {
+      // Check if Zoho SDK is available
+      if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
+        console.warn("ZOHO SDK not loaded yet");
         return;
       }
-  
-      window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-        console.log("Zoho Page Context:", data);
-      });
-  
-      await window.ZOHO.embeddedApp.init();
-  
-      // Now fetch logged-in user
-      const userResponse = await window.ZOHO.CRM.API.getUser();
-      const crmUser = userResponse.users[0];
-      console.log("Logged-in CRM User:", crmUser);
-  
-      // Optionally store in state or localStorage
-      setZohoUser({
-        id: crmUser.id,
-        email: crmUser.email,
-        name: crmUser.full_name,
-      });
+
+      try {
+        // Initialize the embedded app
+        await window.ZOHO.embeddedApp.init();
+
+        // Optional: listen for page load context
+        window.ZOHO.embeddedApp.on("PageLoad", (data) => {
+          console.log("PageLoad context:", data);
+        });
+
+        // Fetch the logged-in CRM user
+        const response = await window.ZOHO.CRM.API.getUser();
+
+        if (response.users && response.users.length > 0) {
+          const crmUser = response.users[0];
+          console.log("Logged-in CRM User:", crmUser);
+        } else {
+          console.warn("No user data returned from Zoho CRM");
+        }
+      } catch (err) {
+        console.error("Error fetching Zoho user:", err);
+      }
     };
-  
-    initZoho();
+
+    fetchZohoUser();
   }, []);
 
 
