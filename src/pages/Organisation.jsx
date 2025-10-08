@@ -4,6 +4,7 @@ import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
 import { canvas } from "@salesforce/canvas-js-sdk";
+import jwtDecode from "jwt-decode";
 
 function Organization() {
   const navigate = useNavigate();
