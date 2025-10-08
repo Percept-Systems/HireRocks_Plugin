@@ -65,45 +65,31 @@ function Organization() {
   }, []);
   
 
-  const fetchAllLeads = async () => {
-    if (!window.ZOHO || !window.ZOHO.CRM || !window.ZOHO.CRM.API) {
-      console.error("Zoho SDK not available yet");
-      return [];
-    }
-
-    try {
-      await window.ZOHO.CRM.init();
-
-      const response = await window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads",
-        page: 1,
-        per_page: 200, // max 200 records per page
-      });
-
-      if (response.status === "success") {
-        console.log("Leads fetched:", response.data); // Log to console
-        return response.data;
-      } else {
-        console.error("Error fetching leads:", response.message);
-        return [];
-      }
-    } catch (err) {
-      console.error("API call failed:", err);
-      return [];
-    }
-  };
-
-  // useEffect to run on component mount
   useEffect(() => {
-    const loadLeads = async () => {
-      await fetchAllLeads(); // fetch leads and log in console
+    const fetchLeads = async () => {
+      if (window.ZOHO && window.ZOHO.CRM && window.ZOHO.CRM.API) {
+        try {
+          const res = await window.ZOHO.CRM.API.getAllRecords({
+            Entity: "Leads",
+            page: 1,
+            per_page: 200
+          });
+          if (res.status === "success") {
+            console.log("Leads:", res.data);
+          } else {
+            console.error("Error fetching leads:", res.message);
+          }
+        } catch (err) {
+          console.error("API call failed:", err);
+        }
+      } else {
+        console.warn("ZOHO SDK not ready yet");
+        setTimeout(fetchLeads, 500); // retry after 0.5s
+      }
     };
-
-    loadLeads();
-  }, []); // Empty dependency array → run once
   
- 
-  
+    fetchLeads();
+  }, []);
   
 
 
