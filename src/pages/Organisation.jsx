@@ -21,6 +21,7 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
+  const [users, setUsers] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -69,6 +70,64 @@ function Organization() {
     fetchLeads();
   }, []);
   
+
+
+  useEffect(() => {
+    // Function to fetch users from Salesforce
+    const fetchSalesforceUsers = async (accessToken, instanceUrl) => {
+      try {
+        const query = "SELECT Id, Name, Email, Username FROM User";
+        const response = await fetch(
+          `${instanceUrl}/services/data/v57.0/query/?q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Salesforce Users:", data.records);
+        setUsers(data.records);
+      } catch (err) {
+        console.error("Error fetching Salesforce users:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Function to initialize Canvas SDK
+    const initCanvasSDK = () => {
+      if (window.SfdcCanvasSDK) {
+        window.SfdcCanvasSDK.oauth.callback = (oauthData) => {
+          const accessToken = oauthData.accessToken;
+          const instanceUrl = oauthData.instanceUrl;
+
+          if (accessToken && instanceUrl) {
+            console.log("Access Token:", accessToken)
+            fetchSalesforceUsers(accessToken, instanceUrl);
+          } else {
+            console.error("No OAuth token or instance URL found in Canvas SDK.");
+            setLoading(false);
+          }
+        };
+
+        // Trigger OAuth callback (Canvas auto-passes signed request)
+        window.SfdcCanvasSDK.oauth.refreshToken();
+      } else {
+        console.error("Canvas SDK not loaded yet.");
+        setLoading(false);
+      }
+    };
+
+    initCanvasSDK();
+  }, []);
+
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
