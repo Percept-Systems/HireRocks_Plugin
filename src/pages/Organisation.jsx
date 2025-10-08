@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
+import { canvas } from "@salesforce/canvas-js-sdk";
+import jwtDecode from "jwt-decode";
 
 function Organization() {
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ function Organization() {
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
   const [users, setUsers] = useState([]);
+  const [context, setContext] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -52,7 +55,7 @@ function Organization() {
           const res = await window.ZOHO.CRM.HTTP.get({
             url: "/crm/v2/Leads?page=1&per_page=200",
           });
-  
+
           if (res.data) {
             console.log("Leads:", res.data); // logs array of Leads
           } else {
@@ -66,64 +69,56 @@ function Organization() {
         setTimeout(fetchLeads, 500); // retry until SDK is ready
       }
     };
-  
+
     fetchLeads();
   }, []);
-  
-
 
   useEffect(() => {
-    const waitForCanvasSDK = () => {
-      if (window.SfdcCanvasSDK) {
-        initCanvas();
-      } else {
-        console.log("Waiting for Canvas SDK...");
-        setTimeout(waitForCanvasSDK, 100); // check every 100ms
+    // Initialize Canvas SDK
+    canvas.client.initialize((signedRequest) => {
+      if (!signedRequest) {
+        console.error("Canvas SDK failed: No signed request");
+        return;
       }
-    };
 
-    const initCanvas = () => {
-      console.log("Canvas SDK loaded, initializing...");
-      window.SfdcCanvasSDK.oauth.callback = (oauthData) => {
-        const accessToken = oauthData.accessToken;
-        const instanceUrl = oauthData.instanceUrl;
+      console.log("Raw Signed Request:", signedRequest);
 
-        if (accessToken && instanceUrl) {
-          fetchUsers(accessToken, instanceUrl);
-        } else {
-          console.error("No OAuth token or instance URL found.");
-          setLoading(false);
-        }
-      };
-
-      window.SfdcCanvasSDK.oauth.refreshToken();
-    };
-
-    const fetchUsers = async (accessToken, instanceUrl) => {
       try {
-        const query = "SELECT Id, Name, Email, Username FROM User";
-        const response = await fetch(
-          `${instanceUrl}/services/data/v57.0/query/?q=${encodeURIComponent(query)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // Decode signed request payload
+        // Salesforce sends signedRequest as JWT: header.payload.signature
+        const parts = signedRequest.split(".");
+        const payload = parts[1];
+        const decoded = JSON.parse(atob(payload)); // decode base64 payload
 
-        const data = await response.json();
-        console.log("Salesforce Users:", data.records);
-        setUsers(data.records);
+        console.log("Decoded Signed Request:", decoded);
+
+        setContext(decoded);
+
+        // Example: Call Salesforce API
+        fetchSalesforceData(decoded.oauthToken, decoded.instance_url);
       } catch (err) {
-        console.error("Error fetching users:", err);
-      } finally {
-        setLoading(false);
+        console.error("Failed to decode signed request:", err);
       }
-    };
-
-    waitForCanvasSDK(); // start polling
+    });
   }, []);
+
+  const fetchSalesforceData = async (oauthToken, instanceUrl) => {
+    try {
+      const response = await fetch(
+        `${instanceUrl}/services/data/v56.0/sobjects/Account/`,
+        {
+          headers: {
+            Authorization: `Bearer ${oauthToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      console.log("Accounts:", data);
+    } catch (err) {
+      console.error("Salesforce API error:", err);
+    }
+  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
