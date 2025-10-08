@@ -47,25 +47,60 @@ function Organization() {
 
 
 
-  // useEffect(() => {
-  //   if (window.ZOHO) {
-  //     window.ZOHO.CRM.init().then(() => {
-  //       console.log("Widgets SDK initialized");
+  useEffect(() => {
+    window.ZOHO.CRM.init().then(() => {
+      console.log("Widgets SDK initialized");
+    
+      window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
+        .then((response) => {
+          if (response.status === "success") {
+            console.log("CRM Users:", response.data);
+          } else {
+            console.error("Error fetching users:", response.message);
+          }
+        })
+        .catch(err => console.error("API error:", err));
+    });
+    
+  }, []);
   
-  //       // Make sure API call happens after init is complete
-  //       window.ZOHO.CRM.API.getUsers({ type: "AllUsers" })
-  //         .then((response) => {
-  //           if (response.status === "success") {
-  //             console.log("CRM Users:", response.data);
-  //           } else {
-  //             console.error("Error fetching users:", response.message);
-  //           }
-  //         })
-  //         .catch((err) => console.error("API error:", err));
-  //     });
-  //   }
-  // }, []);
-  
+
+  const fetchAllLeads = async () => {
+    if (!window.ZOHO || !window.ZOHO.CRM || !window.ZOHO.CRM.API) {
+      console.error("Zoho SDK not available yet");
+      return [];
+    }
+
+    try {
+      await window.ZOHO.CRM.init();
+
+      const response = await window.ZOHO.CRM.API.getAllRecords({
+        Entity: "Leads",
+        page: 1,
+        per_page: 200, // max 200 records per page
+      });
+
+      if (response.status === "success") {
+        console.log("Leads fetched:", response.data); // Log to console
+        return response.data;
+      } else {
+        console.error("Error fetching leads:", response.message);
+        return [];
+      }
+    } catch (err) {
+      console.error("API call failed:", err);
+      return [];
+    }
+  };
+
+  // useEffect to run on component mount
+  useEffect(() => {
+    const loadLeads = async () => {
+      await fetchAllLeads(); // fetch leads and log in console
+    };
+
+    loadLeads();
+  }, []); // Empty dependency array → run once
   
  
   
