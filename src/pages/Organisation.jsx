@@ -98,6 +98,7 @@ function Organization() {
       // API responses are typically structured with a 'data' array containing the records
       if (response && response.data) {
         setCrmData(response.data);
+        console.log("CRM data....",response.data);
       } else {
         // Handle expected API response structure but empty results
         setCrmData();
