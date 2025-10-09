@@ -46,7 +46,8 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-  // Step 1: Initialize the SDK
+ 
+ // Step 1: Initialize the SDK
   useEffect(() => {
     console.log("Setting up SDK.....!");
     if (window.ZOHO && window.ZOHO.embeddedApp) {
@@ -93,7 +94,6 @@ function Organization() {
         // Optionally request specific fields to minimize payload size and processing overhead
         // fields: "Account_Name,Website,Annual_Revenue",
       };
-
       const response = await window.ZOHO.CRM.API.getRecords(parameters);
 
       // API responses are typically structured with a 'data' array containing the records
