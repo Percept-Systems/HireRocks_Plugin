@@ -21,9 +21,8 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [error, setError] = useState(null);
-  const [CrmData, setCrmData] = useState(null);
-  const [isSdkReady, setIsSdkReady] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -46,72 +45,37 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
- 
- // Step 1: Initialize the SDK
+
   useEffect(() => {
-    console.log("Setting up SDK.....!");
-    if (window.ZOHO && window.ZOHO.embeddedApp) {
-      window.ZOHO.embeddedApp
-        .init()
-        .then(() => {
-          setIsSdkReady(true);
-          console.log("SDK Initalized....!");
-        })
-        .catch((err) => {
-          console.error("Initialization failed:", err);
-          setError("SDK failed to connect to Zoho CRM host.");
-          setLoading(false);
-        });
+    if (window.ZOHO && window.ZOHO.CRM) {
+      console.log("ZOHO CRM SDK loaded");
     } else {
-      setError("Zoho SDK not found on the global window object.");
-      setLoading(false);
+      console.error("ZOHO SDK not loaded");
     }
-  });
+  }, []);
 
-  // Step 2: Trigger data fetch only when the SDK is ready
   useEffect(() => {
-    if (isSdkReady) {
-      fetchCrmData();
+    if (window.ZOHO && window.ZOHO.CRM) {
+      window.ZOHO.CRM.init()
+        .then(() => {
+          console.log("ZOHO CRM SDK initialized");
+        })
+        .catch((err) => console.error("Initialization error:", err));
     }
-  });
+  }, []);
 
-  const fetchCrmData = async () => {
-    if (!window.ZOHO || !window.ZOHO.CRM.API) {
-      // Fallback safety check
-      return;
+  useEffect(() => {
+    if (window.ZOHO && window.ZOHO.CRM) {
+      window.ZOHO.CRM.init()
+        .then(() => window.ZOHO.CRM.USERS.getUsers())
+        .then((res) => {
+          console.log("CRM Users:", res.data); // array of user objects
+        })
+        .catch((err) => console.error(err));
     }
+  }, []);
 
-    setLoading(true);
-    setError(null);
 
-    try {
-      const moduleName = "Leads";
-
-      const parameters = {
-        Entity: moduleName,
-        page: 1,
-        perPage: 100, // Balanced retrieval size
-        // Optionally request specific fields to minimize payload size and processing overhead
-        // fields: "Account_Name,Website,Annual_Revenue",
-      };
-      const response = await window.ZOHO.CRM.API.getRecords(parameters);
-
-      // API responses are typically structured with a 'data' array containing the records
-      if (response && response.data) {
-        setCrmData(response.data);
-        console.log("CRM data....",response.data);
-      } else {
-        // Handle expected API response structure but empty results
-        setCrmData();
-      }
-    } catch (err) {
-      console.error("API call failed:", err);
-      // Display user-friendly error message
-      setError(`Data retrieval failed: ${err.message || JSON.stringify(err)}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
@@ -330,6 +294,31 @@ function Organization() {
     }
   };
 
+  // Add employee multi select functions
+  const employeesList = Array.from({ length: 20 }, (_, i) => ({
+    id: i + 1,
+    name: `Employee ${i + 1}`,
+    email: `employee${i + 1}@example.com`,
+  }));
+
+  const handleSelect = (employee) => {
+    const isAlreadySelected = selectedEmployees.find(
+      (e) => e.id === employee.id
+    );
+
+    if (isAlreadySelected) {
+      // Unselect if already selected
+      setSelectedEmployees(
+        selectedEmployees.filter((e) => e.id !== employee.id)
+      );
+    } else if (selectedEmployees.length < 10) {
+      // Add if under limit
+      setSelectedEmployees([...selectedEmployees, employee]);
+    } else {
+      alert("You can select a maximum of 10 employees.");
+    }
+  };
+
   // Handle Done Button (Confirm Employee Addition)
   const handleDone = async () => {
     if (employees.length === 0) {
@@ -491,81 +480,154 @@ function Organization() {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-          <div className="space-y-6" style={{ width: "70vw", height: "70vh" }}>
-            <label className="block text-lg font-bold text-gray-700">
-              Add Employees to Your Organization
-            </label>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center w-full">
-                <input
-                  type="text"
-                  value={FirstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-                  placeholder="First Name"
-                />
-                <input
-                  type="text"
-                  value={LastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-                  placeholder="Last Name "
-                />
-                <input
-                  type="email"
-                  value={employeeEmail}
-                  onChange={(e) => setEmployeeEmail(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none"
-                  placeholder="Employee Email"
-                />
-                <button
-                  onClick={handleAddEmployee}
-                  className="bg-green-500 hover:bg-green-700 text-white p-[10px] text-[11px] rounded-md ml-2"
-                >
-                  Add Employee
-                </button>
-              </div>
+          // <div className="space-y-6" style={{ width: "70vw", height: "70vh" }}>
+          //   <label className="block text-lg font-bold text-gray-700">
+          //     Add Employees to Your Organization
+          //   </label>
 
-              {/* Employee List Section */}
-              {employees.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-bold text-gray-700 mb-4">
-                    Employees Added:
-                  </h3>
-                  <div className="space-y-4">
-                    {employees.map((emp, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-md hover:bg-gray-200"
+          //   <div className="space-y-4">
+          //     <div className="flex justify-between items-center w-full">
+          //       <input
+          //         type="text"
+          //         value={FirstName}
+          //         onChange={(e) => setFirstName(e.target.value)}
+          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
+          //         placeholder="First Name"
+          //       />
+          //       <input
+          //         type="text"
+          //         value={LastName}
+          //         onChange={(e) => setLastName(e.target.value)}
+          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
+          //         placeholder="Last Name "
+          //       />
+          //       <input
+          //         type="email"
+          //         value={employeeEmail}
+          //         onChange={(e) => setEmployeeEmail(e.target.value)}
+          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none"
+          //         placeholder="Employee Email"
+          //       />
+          //       <button
+          //         onClick={handleAddEmployee}
+          //         className="bg-green-500 hover:bg-green-700 text-white p-[10px] text-[11px] rounded-md ml-2"
+          //       >
+          //         Add Employee
+          //       </button>
+          //     </div>
+
+          //     {/* Employee List Section */}
+          //     {employees.length > 0 && (
+          //       <div className="mt-6">
+          //         <h3 className="text-lg font-bold text-gray-700 mb-4">
+          //           Employees Added:
+          //         </h3>
+          //         <div className="space-y-4">
+          //           {employees.map((emp, index) => (
+          //             <div
+          //               key={index}
+          //               className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-md hover:bg-gray-200"
+          //             >
+          //               <div>
+          //                 <p className="text-gray-800 font-medium">
+          //                   {emp.FirstName}
+          //                 </p>
+          //                 <p className="text-gray-800 font-medium">
+          //                   {emp.LastName}
+          //                 </p>
+          //                 <p className="text-sm text-gray-600">{emp.email}</p>
+          //               </div>
+          //               <button
+          //                 onClick={() => {
+          //                   const updatedEmployees = employees.filter(
+          //                     (_, i) => i !== index
+          //                   );
+          //                   setEmployees(updatedEmployees);
+          //                 }}
+          //                 className="bg-red-500 hover:bg-red-700 text-white p-2 w-12 h-12 rounded-full"
+          //               >
+          //                 &times;
+          //               </button>
+          //             </div>
+          //           ))}
+          //         </div>
+          //       </div>
+          //     )}
+          //   </div>
+
+          //   {/* Done Button */}
+          //   <button
+          //     onClick={handleDone}
+          //     className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
+          //   >
+          //     Done
+          //   </button>
+          // </div>
+          <div className="w-[400px] mx-auto">
+            <label className="block text-lg font-bold text-gray-700 mb-2">
+              Select Employees (max 10)
+            </label>
+
+            {/* Dropdown box */}
+            <div
+              className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {selectedEmployees.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedEmployees.map((emp) => (
+                    <span
+                      key={emp.id}
+                      className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
+                    >
+                      {emp.name}
+                      <button
+                        className="ml-1 text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelect(emp);
+                        }}
                       >
-                        <div>
-                          <p className="text-gray-800 font-medium">
-                            {emp.FirstName}
-                          </p>
-                          <p className="text-gray-800 font-medium">
-                            {emp.LastName}
-                          </p>
-                          <p className="text-sm text-gray-600">{emp.email}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const updatedEmployees = employees.filter(
-                              (_, i) => i !== index
-                            );
-                            setEmployees(updatedEmployees);
-                          }}
-                          className="bg-red-500 hover:bg-red-700 text-white p-2 w-12 h-12 rounded-full"
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                        ✕
+                      </button>
+                    </span>
+                  ))}
                 </div>
+              ) : (
+                <span className="text-gray-400">Select employees...</span>
               )}
             </div>
 
-            {/* Done Button */}
+            {/* Dropdown list */}
+            {isOpen && (
+              <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
+                {employeesList.map((emp) => {
+                  const isSelected = selectedEmployees.some(
+                    (e) => e.id === emp.id
+                  );
+                  return (
+                    <div
+                      key={emp.id}
+                      onClick={() => handleSelect(emp)}
+                      className={`flex justify-between items-center p-2 cursor-pointer ${
+                        isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="text-gray-800">{emp.name}</span>
+                      {isSelected && (
+                        <span className="text-blue-600 font-bold">✓</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Display selected count */}
+            <p className="text-sm text-gray-600 mt-2">
+              Selected: {selectedEmployees.length} / 10
+            </p>
+
             <button
               onClick={handleDone}
               className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
