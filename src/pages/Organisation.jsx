@@ -45,22 +45,12 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-
   useEffect(() => {
-    if (window.ZOHO && window.ZOHO.CRM) {
-      console.log("ZOHO CRM SDK loaded");
-    } else {
-      console.error("ZOHO SDK not loaded");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (window.ZOHO && window.ZOHO.CRM) {
-      window.ZOHO.CRM.init()
-        .then(() => {
-          console.log("ZOHO CRM SDK initialized");
-        })
-        .catch((err) => console.error("Initialization error:", err));
+    if (window.ZOHO) {
+      window.ZOHO.on("crmReady", () => {
+        console.log("ZOHO CRM SDK is ready!");
+        window.ZOHO.CRM.init().then(() => console.log("SDK Initialized"));
+      });
     }
   }, []);
 
@@ -74,8 +64,6 @@ function Organization() {
         .catch((err) => console.error(err));
     }
   }, []);
-
-
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
