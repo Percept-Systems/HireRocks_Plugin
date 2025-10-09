@@ -23,6 +23,7 @@ function Organization() {
   const [platform, setPlatform] = useState(null);
   const [error, setError] = useState(null);
   const [CrmData, setCrmData] = useState(null);
+  const [isSdkReady, setIsSdkReady] = useState(false);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
