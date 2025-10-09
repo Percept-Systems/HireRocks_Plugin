@@ -21,9 +21,8 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
-  const [instanceUrl, setInstanceUrl] = useState(null);
-  const [leads, setLeads] = useState([]);
+  const [error, setError] = useState(null);
+  const [CrmData, setCrmData] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -46,80 +45,68 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
+  // Step 1: Initialize the SDK
   useEffect(() => {
-    const fetchLeads = async () => {
-      if (window.ZOHO && window.ZOHO.CRM && window.ZOHO.CRM.HTTP) {
-        try {
-          // Fetch Leads via Zoho CRM REST API
-          const res = await window.ZOHO.CRM.HTTP.get({
-            url: "/crm/v2/Leads?page=1&per_page=200",
-          });
-
-          if (res.data) {
-            console.log("Leads:", res.data); // logs array of Leads
-          } else {
-            console.warn("No Leads found in response");
-          }
-        } catch (err) {
-          console.error("HTTP API call failed:", err);
-        }
-      } else {
-        console.warn("ZOHO SDK not ready yet, retrying...");
-        setTimeout(fetchLeads, 500); // retry until SDK is ready
-      }
-    };
-
-    fetchLeads();
-  }, []);
-
-  useEffect(() => {
-    console.log("Initializing Salesforce Canvas SDK...");
-    console.log("Window object:",window)
-
-    if (window.Sfdc && window.Sfdc.canvas) {
-      window.Sfdc.canvas.client.init();
-
-      // Subscribe to signed_request event
-      window.Sfdc.canvas.client.subscribe(window, "signedRequest", (data) => {
-        console.log("Received signed request from Salesforce:", data);
-
-        const token = data.oauthToken;
-        const instance = data.instanceUrl;
-
-        console.log("Access Token:", token);
-        console.log("Instance URL:", instance);
-
-        setAccessToken(token);
-        setInstanceUrl(instance);
-      });
+    if (window.ZOHO && window.ZOHO.embeddedApp) {
+      window.ZOHO.embeddedApp
+        .init()
+        .then(() => {
+          setIsSdkReady(true);
+          console.log("SDK Initalized....!");
+        })
+        .catch((err) => {
+          console.error("Initialization failed:", err);
+          setError("SDK failed to connect to Zoho CRM host.");
+          setLoading(false);
+        });
     } else {
-      console.error("Salesforce Canvas SDK not loaded.");
+      setError("Zoho SDK not found on the global window object.");
+      setLoading(false);
     }
-  }, []);
+  });
 
+  // Step 2: Trigger data fetch only when the SDK is ready
   useEffect(() => {
-    if (accessToken && instanceUrl) {
-      console.log("Fetching leads...");
-      fetchLeads(accessToken, instanceUrl);
+    if (isSdkReady) {
+      fetchCrmData();
     }
-  }, [accessToken, instanceUrl]);
+  });
 
-  const fetchLeads = async (token, instance) => {
+  const fetchCrmData = async () => {
+    if (!window.ZOHO || !window.ZOHO.CRM.API) {
+      // Fallback safety check
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const res = await fetch(
-        `${instance}/services/data/v57.0/query?q=SELECT+Id,Name,Email+FROM+Lead+LIMIT+10`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const data = await res.json();
-      console.log("Fetched Leads:", data.records);
-      setLeads(data.records);
+      const moduleName = "Leads";
+
+      const parameters = {
+        Entity: moduleName,
+        page: 1,
+        perPage: 100, // Balanced retrieval size
+        // Optionally request specific fields to minimize payload size and processing overhead
+        // fields: "Account_Name,Website,Annual_Revenue",
+      };
+
+      const response = await window.ZOHO.CRM.API.getRecords(parameters);
+
+      // API responses are typically structured with a 'data' array containing the records
+      if (response && response.data) {
+        setCrmData(response.data);
+      } else {
+        // Handle expected API response structure but empty results
+        setCrmData();
+      }
     } catch (err) {
-      console.error("Error fetching leads:", err);
+      console.error("API call failed:", err);
+      // Display user-friendly error message
+      setError(`Data retrieval failed: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setLoading(false);
     }
   };
 
