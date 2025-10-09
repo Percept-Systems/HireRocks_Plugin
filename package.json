@@ -2,6 +2,7 @@
   "name": "hirerocks-plugin",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@salesforce/canvas-js-sdk": "^1.41.0",
     "antd": "^5.23.2",
