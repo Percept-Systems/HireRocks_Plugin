@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
+import { initZohoSDK } from "../utils/initZohoSDK";
 
 function Organization() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ function Organization() {
   const [platform, setPlatform] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [zohoInfo, setZohoInfo] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -46,23 +48,15 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    if (window.ZOHO) {
-      window.ZOHO.on("crmReady", () => {
-        console.log("ZOHO CRM SDK is ready!");
-        window.ZOHO.CRM.init().then(() => console.log("SDK Initialized"));
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (window.ZOHO && window.ZOHO.CRM) {
-      window.ZOHO.CRM.init()
-        .then(() => window.ZOHO.CRM.USERS.getUsers())
-        .then((res) => {
-          console.log("CRM Users:", res.data); // array of user objects
-        })
-        .catch((err) => console.error(err));
-    }
+    const init = async () => {
+      try {
+        const data = await initZohoSDK();
+        setZohoInfo(data);
+      } catch (error) {
+        console.error("Failed to init Zoho SDK:", error);
+      }
+    };
+    init();
   }, []);
 
   // Handle View Click (Step 1 for Viewing Organization)
@@ -468,89 +462,6 @@ function Organization() {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-          // <div className="space-y-6" style={{ width: "70vw", height: "70vh" }}>
-          //   <label className="block text-lg font-bold text-gray-700">
-          //     Add Employees to Your Organization
-          //   </label>
-
-          //   <div className="space-y-4">
-          //     <div className="flex justify-between items-center w-full">
-          //       <input
-          //         type="text"
-          //         value={FirstName}
-          //         onChange={(e) => setFirstName(e.target.value)}
-          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-          //         placeholder="First Name"
-          //       />
-          //       <input
-          //         type="text"
-          //         value={LastName}
-          //         onChange={(e) => setLastName(e.target.value)}
-          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-          //         placeholder="Last Name "
-          //       />
-          //       <input
-          //         type="email"
-          //         value={employeeEmail}
-          //         onChange={(e) => setEmployeeEmail(e.target.value)}
-          //         className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none"
-          //         placeholder="Employee Email"
-          //       />
-          //       <button
-          //         onClick={handleAddEmployee}
-          //         className="bg-green-500 hover:bg-green-700 text-white p-[10px] text-[11px] rounded-md ml-2"
-          //       >
-          //         Add Employee
-          //       </button>
-          //     </div>
-
-          //     {/* Employee List Section */}
-          //     {employees.length > 0 && (
-          //       <div className="mt-6">
-          //         <h3 className="text-lg font-bold text-gray-700 mb-4">
-          //           Employees Added:
-          //         </h3>
-          //         <div className="space-y-4">
-          //           {employees.map((emp, index) => (
-          //             <div
-          //               key={index}
-          //               className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-md hover:bg-gray-200"
-          //             >
-          //               <div>
-          //                 <p className="text-gray-800 font-medium">
-          //                   {emp.FirstName}
-          //                 </p>
-          //                 <p className="text-gray-800 font-medium">
-          //                   {emp.LastName}
-          //                 </p>
-          //                 <p className="text-sm text-gray-600">{emp.email}</p>
-          //               </div>
-          //               <button
-          //                 onClick={() => {
-          //                   const updatedEmployees = employees.filter(
-          //                     (_, i) => i !== index
-          //                   );
-          //                   setEmployees(updatedEmployees);
-          //                 }}
-          //                 className="bg-red-500 hover:bg-red-700 text-white p-2 w-12 h-12 rounded-full"
-          //               >
-          //                 &times;
-          //               </button>
-          //             </div>
-          //           ))}
-          //         </div>
-          //       </div>
-          //     )}
-          //   </div>
-
-          //   {/* Done Button */}
-          //   <button
-          //     onClick={handleDone}
-          //     className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
-          //   >
-          //     Done
-          //   </button>
-          // </div>
           <div className="w-[400px] mx-auto">
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Select Employees (max 10)
@@ -622,6 +533,17 @@ function Organization() {
             >
               Done
             </button>
+
+            <div style={{ padding: "1rem" }}>
+              <h2>Zoho CRM Connected</h2>
+              <p>
+                <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
+              </p>
+              <p>
+                <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
+              </p>
+              <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
+            </div>
           </div>
         )}
 
