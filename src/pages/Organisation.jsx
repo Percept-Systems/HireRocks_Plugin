@@ -48,6 +48,7 @@ function Organization() {
 
   // Step 1: Initialize the SDK
   useEffect(() => {
+    console.log("Setting up SDK.....!");
     if (window.ZOHO && window.ZOHO.embeddedApp) {
       window.ZOHO.embeddedApp
         .init()
