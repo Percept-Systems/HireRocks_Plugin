@@ -21,9 +21,6 @@ function Organization() {
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [error, setError] = useState(null);
-  const [CrmData, setCrmData] = useState(null);
-  const [isSdkReady, setIsSdkReady] = useState(false);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -45,73 +42,6 @@ function Organization() {
     console.log("Detected platform:", detectedPlatform);
     setPlatform(detectedPlatform);
   }, []);
-
- 
- // Step 1: Initialize the SDK
-  useEffect(() => {
-    console.log("Setting up SDK.....!");
-    if (window.ZOHO && window.ZOHO.embeddedApp) {
-      window.ZOHO.embeddedApp
-        .init()
-        .then(() => {
-          setIsSdkReady(true);
-          console.log("SDK Initalized....!");
-        })
-        .catch((err) => {
-          console.error("Initialization failed:", err);
-          setError("SDK failed to connect to Zoho CRM host.");
-          setLoading(false);
-        });
-    } else {
-      setError("Zoho SDK not found on the global window object.");
-      setLoading(false);
-    }
-  });
-
-  // Step 2: Trigger data fetch only when the SDK is ready
-  useEffect(() => {
-    if (isSdkReady) {
-      fetchCrmData();
-    }
-  });
-
-  const fetchCrmData = async () => {
-    if (!window.ZOHO || !window.ZOHO.CRM.API) {
-      // Fallback safety check
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const moduleName = "Leads";
-
-      const parameters = {
-        Entity: moduleName,
-        page: 1,
-        perPage: 100, // Balanced retrieval size
-        // Optionally request specific fields to minimize payload size and processing overhead
-        // fields: "Account_Name,Website,Annual_Revenue",
-      };
-      const response = await window.ZOHO.CRM.API.getRecords(parameters);
-
-      // API responses are typically structured with a 'data' array containing the records
-      if (response && response.data) {
-        setCrmData(response.data);
-        console.log("CRM data....",response.data);
-      } else {
-        // Handle expected API response structure but empty results
-        setCrmData();
-      }
-    } catch (err) {
-      console.error("API call failed:", err);
-      // Display user-friendly error message
-      setError(`Data retrieval failed: ${err.message || JSON.stringify(err)}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
