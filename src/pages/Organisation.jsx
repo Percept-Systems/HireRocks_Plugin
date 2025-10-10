@@ -49,25 +49,25 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    const initializeAndFetch = async () => {
+    const initAndFetchUsers = async () => {
       try {
-        // Initialize SDK
+        // 1️⃣ Initialize Zoho SDK (simple init for Web Tab)
         await window.ZOHO.CRM.init();
         console.log("ZOHO CRM SDK initialized");
         setSdkReady(true);
 
-        // Fetch users
-        const res = await window.ZOHO.CRM.USERS.getUsers();
-        console.log("Users:", res.data);
+        // 2️⃣ Fetch CRM Users
+        const res = await window.ZOHO.CRM.API.getAllUsers();
+        console.log("CRM Users:", res.users);
       } catch (error) {
         console.error("Error initializing SDK or fetching users:", error);
       }
     };
 
     if (window.ZOHO && window.ZOHO.CRM) {
-      initializeAndFetch();
+      initAndFetchUsers();
     } else {
-      console.error("ZOHO SDK not loaded yet");
+      console.error("ZOHO SDK not loaded — make sure script is in index.html");
     }
   }, []);
   // Handle View Click (Step 1 for Viewing Organization)
