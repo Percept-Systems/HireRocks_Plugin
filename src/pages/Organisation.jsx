@@ -26,6 +26,7 @@ function Organization() {
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
   const [SdkReady, setSdkReady] = useState(false);
+  const [users, setUsers] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -70,6 +71,42 @@ function Organization() {
       console.error("ZOHO SDK not loaded — make sure script is in index.html");
     }
   }, []);
+
+
+  // Salesforce sdk init()
+
+
+  useEffect(() => {
+    if (window.Sfdc && window.Sfdc.canvas) {
+      console.log("Salesforce sdk intializing...")
+      window.Sfdc.canvas.client.subscribe(window, 'signedRequest', function (signedRequest) {
+        const { oauthToken, instanceUrl } = signedRequest.client;
+        console.log("Salesforce Oauth token....",oauthToken)
+        fetchUsers(oauthToken, instanceUrl);
+      });
+    }
+  }, []);
+
+
+  const fetchUsers = async (token, instanceUrl) => {
+    try {
+      const query = "SELECT Id, Name, Email FROM User LIMIT 10";
+      const res = await fetch(
+        `${instanceUrl}/services/data/v59.0/query?q=${encodeURIComponent(query)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      console.log("Salesforce Users",data.records)
+      setUsers(data.records || []);
+    } catch (err) {
+      console.error('Error fetching Salesforce users:', err);
+    }
+  };
+
+
+
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
