@@ -1,39 +1,14 @@
-const ZOHO_SDK_URL =
-  "https://static.zohocdn.com/zp5/widgets/zpwidgetsdk.min.js";
-
 export const loadZohoSDK = () => {
   return new Promise((resolve, reject) => {
-    console.log("🌀 Checking if Zoho SDK already available...");
+    console.log("🌀 Checking if Zoho SDK is available...");
 
     if (window.ZOHO && window.ZOHO.embeddedApp) {
-      console.log("✅ Zoho SDK already loaded.");
-      return resolve();
-    }
-
-    // If script tag already exists, wait for it to finish loading
-    if (document.querySelector(`script[src="${ZOHO_SDK_URL}"]`)) {
-      console.log("⏳ SDK script already in DOM, waiting...");
-      const interval = setInterval(() => {
-        if (window.ZOHO && window.ZOHO.embeddedApp) {
-          clearInterval(interval);
-          console.log("✅ Zoho SDK ready after wait.");
-          resolve();
-        }
-      }, 300);
-      setTimeout(() => reject("⏰ Zoho SDK load timeout"), 10000);
-      return;
-    }
-
-    // Inject script dynamically
-    console.log("📥 Injecting Zoho SDK script...");
-    const script = document.createElement("script");
-    script.src = ZOHO_SDK_URL;
-    script.async = true;
-    script.onload = () => {
-      console.log("✅ Zoho SDK script loaded successfully.");
+      console.log("✅ Zoho SDK is ready.");
       resolve();
-    };
-    script.onerror = () => reject("❌ Failed to load Zoho SDK script");
-    document.body.appendChild(script);
+    } else {
+      reject(
+        "❌ Zoho SDK not loaded. Make sure the script is included in index.html"
+      );
+    }
   });
 };
