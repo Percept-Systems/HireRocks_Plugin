@@ -19,6 +19,7 @@ function Organization() {
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
   const [errors, setErrors] = useState({}); // State to store validation errors
+  const [error, setError] = useState({}); // State to store validation errors
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
