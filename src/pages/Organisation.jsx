@@ -541,7 +541,7 @@ function Organization() {
               Done
             </button>
 
-            <div style={{ padding: "1rem" }}>
+            {/* <div style={{ padding: "1rem" }}>
               <h2>Zoho CRM Connected</h2>
               <p>
                 <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
@@ -550,7 +550,7 @@ function Organization() {
                 <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
               </p>
               <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
-            </div>
+            </div> */}
           </div>
         )}
 
