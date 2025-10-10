@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import { initZohoClient, fetchLeads } from "../utils/zohoClient";
 
 function Organization() {
   const navigate = useNavigate();
@@ -26,7 +25,7 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
-  const [leads, setLeads] = useState(null);
+  const [SdkReady, setSdkReady] = useState(false);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -50,21 +49,27 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    const loadData = async () => {
+    const initializeAndFetch = async () => {
       try {
-        const client = initZohoClient();
-        console.log("client init.....");
-        const leadData = await fetchLeads(client);
-        console.log("Leads data...", leadData);
-        setLeads(leadData);
-      } catch (err) {
-        setError(err.toString());
+        // Initialize SDK
+        await window.ZOHO.CRM.init();
+        console.log("ZOHO CRM SDK initialized");
+        setSdkReady(true);
+
+        // Fetch users
+        const res = await window.ZOHO.CRM.USERS.getUsers();
+        console.log("Users:", res.data);
+      } catch (error) {
+        console.error("Error initializing SDK or fetching users:", error);
       }
     };
 
-    loadData();
+    if (window.ZOHO && window.ZOHO.CRM) {
+      initializeAndFetch();
+    } else {
+      console.error("ZOHO SDK not loaded yet");
+    }
   }, []);
-
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
@@ -540,7 +545,7 @@ function Organization() {
               Done
             </button>
 
-            {/* <div style={{ padding: "1rem" }}>
+            <div style={{ padding: "1rem" }}>
               <h2>Zoho CRM Connected</h2>
               <p>
                 <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
@@ -549,7 +554,7 @@ function Organization() {
                 <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
               </p>
               <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
-            </div> */}
+            </div>
           </div>
         )}
 
