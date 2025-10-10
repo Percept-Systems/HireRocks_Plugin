@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import { initZohoClient, fetchLeads } from "../utils/zohoClient";
 
 function Organization() {
   const navigate = useNavigate();
