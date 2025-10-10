@@ -25,6 +25,7 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
+  const [SdkReady, setSdkReady] = useState(false);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
