@@ -47,32 +47,22 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    // 1️⃣ Load Zoho SDK dynamically
     const script = document.createElement("script");
     script.src = "https://static.zohocrm/v8.0/sdk/2.0.0/zohocrmsdk-8-0.js";
     script.onload = () => {
-      // 2️⃣ Initialize SDK
+      // Now ZOHO is available
       ZOHO.CRM.CONFIG.init({
         client_id: "1000.KXXJLCEMMNFIVWIJXJHVXM7PA6945F",
         client_secret: "638b694e6794faae15ddfb6a48dfbc80110f574ac0",
         redirect_uri: "https://hire-rocks-plugin-eight.vercel.app/callback",
-        environment: "https://www.zohoapis.in", // use .in if in India
+        environment: "https://www.zohoapis.com",
       });
 
-      // 3️⃣ Fetch CRM Users
       ZOHO.CRM.API.getAllRecords({ Entity: "Users" })
-        .then((response) => {
-          console.log("CRM Users:", response.data);
-        })
-        .catch((error) => {
-          console.error("Error fetching users:", error);
-        });
+        .then((res) => console.log(res.data))
+        .catch((err) => console.error(err));
     };
     document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
   }, []);
 
   // Handle View Click (Step 1 for Viewing Organization)
