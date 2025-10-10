@@ -1,4 +1,5 @@
-const ZOHO_SDK_URL = "https://static.zohocdn.com/zohosdk/1.1/js/ZohoEmbededAppSDK.min.js";
+const ZOHO_SDK_URL =
+  "https://static.zohocdn.com/zp5/widgets/zpwidgetsdk.min.js";
 
 export const loadZohoSDK = () => {
   return new Promise((resolve, reject) => {
