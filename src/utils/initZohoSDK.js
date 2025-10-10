@@ -4,31 +4,31 @@ export const initZohoSDK = async () => {
       return reject("❌ Zoho SDK not loaded.");
     }
 
-    // Initialize the embedded app
-    window.ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      console.log("✅ Page loaded with data:", data);
+    console.log("⚙️ Initializing Zoho Embedded App SDK...");
+
+    window.ZOHO.embeddedApp.on("PageLoad", async (data) => {
+      console.group("📄 Zoho PageLoad Event");
+      console.log("🔹 Page data received:", data);
+      console.groupEnd();
 
       try {
-        // Fetch current user details
+        console.log("🔍 Fetching user details...");
         const userResponse = await window.ZOHO.CRM.API.getUser();
-        console.log("👤 Zoho User:", userResponse);
+        console.log("👤 User Data:", userResponse);
 
-        // Fetch organization details
+        console.log("🏢 Fetching organization details...");
         const orgResponse = await window.ZOHO.CRM.CONFIG.getCurrentOrg();
-        console.log("🏢 Zoho Org:", orgResponse);
+        console.log("🏢 Organization Data:", orgResponse);
 
-        resolve({
-          user: userResponse,
-          org: orgResponse,
-          pageData: data,
-        });
+        console.log("✅ Zoho data fetched successfully!");
+        resolve({ user: userResponse, org: orgResponse, pageData: data });
       } catch (err) {
-        console.error("Error fetching Zoho data:", err);
+        console.error("❌ Error fetching Zoho data:", err);
         reject(err);
       }
     });
 
-    // Must call init() to start SDK
+    // Start SDK
     window.ZOHO.embeddedApp.init();
   });
 };

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
+import { loadZohoSDK } from "../utils/loadZohoSDK";
 import { initZohoSDK } from "../utils/initZohoSDK";
 
 function Organization() {
@@ -49,13 +50,18 @@ function Organization() {
 
   useEffect(() => {
     const init = async () => {
+      console.log("🚀 Starting Zoho SDK initialization...");
       try {
+        await loadZohoSDK();
         const data = await initZohoSDK();
+        console.log("✅ All Zoho data fetched:", data);
         setZohoInfo(data);
-      } catch (error) {
-        console.error("Failed to init Zoho SDK:", error);
+      } catch (err) {
+        console.error("❌ Failed to init Zoho SDK:", err);
+        setError(err.toString());
       }
     };
+
     init();
   }, []);
 
