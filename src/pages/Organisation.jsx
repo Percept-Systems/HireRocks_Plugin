@@ -24,6 +24,7 @@ function Organization() {
   const [platform, setPlatform] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [zohoInfo, setZohoInfo] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -47,24 +48,27 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://static.zohocrm/v8.0/sdk/2.0.0/zohocrmsdk-8-0.js";
-    script.onload = () => {
-      // Now ZOHO is available
-      ZOHO.CRM.CONFIG.init({
-        client_id: "1000.KXXJLCEMMNFIVWIJXJHVXM7PA6945F",
-        client_secret: "638b694e6794faae15ddfb6a48dfbc80110f574ac0",
-        redirect_uri: "https://hire-rocks-plugin-eight.vercel.app/callback",
-        environment: "https://www.zohoapis.com",
-      });
+    const initializeAndFetch = async () => {
+      try {
+        // Initialize SDK
+        await window.ZOHO.CRM.init();
+        console.log("ZOHO CRM SDK initialized");
+        setSdkReady(true);
 
-      ZOHO.CRM.API.getAllRecords({ Entity: "Users" })
-        .then((res) => console.log(res.data))
-        .catch((err) => console.error(err));
+        // Fetch users
+        const res = await window.ZOHO.CRM.USERS.getUsers();
+        console.log("Users:", res.data);
+      } catch (error) {
+        console.error("Error initializing SDK or fetching users:", error);
+      }
     };
-    document.body.appendChild(script);
-  }, []);
 
+    if (window.ZOHO && window.ZOHO.CRM) {
+      initializeAndFetch();
+    } else {
+      console.error("ZOHO SDK not loaded yet");
+    }
+  }, []);
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
@@ -540,7 +544,7 @@ function Organization() {
               Done
             </button>
 
-            {/* <div style={{ padding: "1rem" }}>
+            <div style={{ padding: "1rem" }}>
               <h2>Zoho CRM Connected</h2>
               <p>
                 <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
@@ -549,7 +553,7 @@ function Organization() {
                 <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
               </p>
               <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
-            </div> */}
+            </div>
           </div>
         )}
 
