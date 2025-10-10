@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import { loadZohoSDK } from "../utils/loadZohoSDK";
-import { initZohoSDK } from "../utils/initZohoSDK";
+import { initZohoClient, fetchLeads } from "../utils/zohoClient";
 
 function Organization() {
   const navigate = useNavigate();
@@ -27,6 +26,7 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
+  const [leads, setLeads] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -50,20 +50,19 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      console.log("🚀 Starting Zoho SDK initialization...");
+    const loadData = async () => {
       try {
-        await loadZohoSDK();
-        const data = await initZohoSDK();
-        console.log("✅ All Zoho data fetched:", data);
-        setZohoInfo(data);
+        const client = initZohoClient();
+        console.log("client init.....");
+        const leadData = await fetchLeads(client);
+        console.log("Leads data...", leadData);
+        setLeads(leadData);
       } catch (err) {
-        console.error("❌ Failed to init Zoho SDK:", err);
         setError(err.toString());
       }
     };
 
-    init();
+    loadData();
   }, []);
 
   // Handle View Click (Step 1 for Viewing Organization)
