@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Organization from "./pages/Organisation";
 import DashboardEmp from "./pages/DashboardEmp";
@@ -7,29 +7,9 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  // useEffect(() => {
-  //   if (window.Sfdc && window.Sfdc.canvas) {
-  //     // Initialize Canvas SDK
-  //     window.Sfdc.canvas.client.init({
-  //       clientId:
-  //         "3MVG9dAEux2v1sLv74wmstLn5H85DDTFSVwKdawt2XI2.c5Ciav_Zrmxocvsflb83iL6CrTAFDLkjwe.5ACIk",
-  //       oauthCallback: "https://hire-rocks-plugin-eight.vercel.app/callback",
-  //     });
-
-  //     // Subscribe to signed request
-  //     window.Sfdc.canvas.client.subscribe(
-  //       window,
-  //       "signedRequest",
-  //       function (signedRequest) {
-  //         console.log("Signed Request:", signedRequest);
-  //         console.log("Signed Request:", signedRequest.client.oauthToken);
-  //         // You now have the OAuth token and org info
-  //       }
-  //     );
-  //   } else {
-  //     console.error("Canvas SDK not loaded");
-  //   }
-  // }, []);
+  const [signedReq, setSignedReq] = useState(null);
+  const [sfContext, setSfContext] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
 
   if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
     // Register PageLoad event
@@ -56,6 +36,111 @@ function App() {
   } else {
     console.warn("ZOHO SDK not loaded yet.");
   }
+
+  // Salesforce sdk setup and fetch data method
+
+  // Wait for SDK to load
+  const tryInit = () => {
+    if (window.Sfdc && window.Sfdc.canvas) {
+      console.log("Canvas SDK available");
+
+      // Let SDK know your app is ready (if needed)
+      window.Sfdc.canvas.onReady(function () {
+        console.log("Canvas is ready");
+
+        // Immediately fetch a fresh signed request
+        fetchSignedRequest((newSR) => {
+          setSignedReq(newSR);
+          const ctx = decodeSignedRequest(newSR);
+          setSfContext(ctx);
+
+          // From context, you can get oauthToken, instanceUrl, user context etc.
+          if (
+            ctx &&
+            ctx.client &&
+            ctx.client.oauthToken &&
+            ctx.client.instanceUrl
+          ) {
+            fetchCurrentUser(ctx.client.oauthToken, ctx.client.instanceUrl);
+          }
+        });
+      });
+    } else {
+      console.warn("Canvas SDK not loaded yet");
+    }
+  };
+
+  // If SDK might load later, poll
+  if (window.Sfdc && window.Sfdc.canvas) {
+    tryInit();
+  } else {
+    const iv = setInterval(() => {
+      if (window.Sfdc && window.Sfdc.canvas) {
+        clearInterval(iv);
+        tryInit();
+      }
+    }, 300);
+  }
+
+  const decodeSignedRequest = (signedRequest) => {
+    try {
+      // Signed request = signature + "." + Base64-encoded JSON context
+      const parts = signedRequest.split(".");
+      if (parts.length !== 2) {
+        console.error("Invalid signed request format");
+        return null;
+      }
+      const encodedContext = parts[1];
+      const json = window.Sfdc.canvas.decode(encodedContext); // SDK helper
+      return JSON.parse(json);
+    } catch (e) {
+      console.error("Failed to decode signed request:", e);
+      return null;
+    }
+  };
+
+  // Request (or refresh) the signed request
+  const fetchSignedRequest = (callback) => {
+    if (!window.Sfdc || !window.Sfdc.canvas || !window.Sfdc.canvas.client) {
+      console.error("Canvas SDK not available");
+      return;
+    }
+
+    window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
+      if (data.status === 200) {
+        const newSignedReq = data.payload.response;
+        callback(newSignedReq);
+      } else {
+        console.error("refreshSignedRequest failed:", data);
+        // Optionally fallback to repost()
+        // window.Sfdc.canvas.client.repost({ refresh: true });
+      }
+    });
+  };
+
+  // Use the signed request to fetch current user (via REST API)
+  const fetchCurrentUser = (oauthToken, instanceUrl) => {
+    const soql = `SELECT Id, Username, Name, Email FROM User WHERE Id = '${sfContext.user.userId}'`;
+    const url = `${instanceUrl}/services/data/v58.0/query?q=${encodeURIComponent(
+      soql
+    )}`;
+
+    window.Sfdc.canvas.client.ajax(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${oauthToken}`,
+      },
+      success: function (resp) {
+        console.log("User record:", resp);
+        if (resp.records && resp.records.length > 0) {
+          setUserInfo(resp.records[0]);
+        }
+      },
+      error: function (err) {
+        console.error("Error fetching user:", err);
+      },
+    });
+  };
 
   return (
     <Router>
