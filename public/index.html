@@ -40,16 +40,27 @@
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
-  <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+  <script>
+    if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
+      // Register PageLoad event
+      ZOHO.embeddedApp.on("PageLoad", function (data) {
+        console.log("PageLoad event data:", data);
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+        // Fetch Leads
+        ZOHO.CRM.API.getAllRecords({ Entity: "Leads", per_page: 15, page: 1, sort_order: "desc" })
+          .then(function (response) {
+            console.log("Fetched Leads data:", response.data);
+          })
+          .catch(function (error) {
+            console.error("Failed to fetch Leads:", error);
+          });
+      });
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-</body>
+      // Initialize embedded app
+      ZOHO.embeddedApp.init();
+    } else {
+      console.warn("ZOHO SDK not loaded yet.");
+    }
+  </script>
 
 </html>
