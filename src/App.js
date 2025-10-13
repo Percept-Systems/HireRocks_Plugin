@@ -73,18 +73,19 @@ function App() {
     });
   };
 
-  // Use the signed request to fetch current user (via REST API)
-  const fetchCurrentUser = (oauthToken, instanceUrl) => {
-    const soql = `SELECT Id, Username, Name, Email FROM User WHERE Id = '${sfContext.user.userId}'`;
-    const url = `${instanceUrl}/services/data/v58.0/query?q=${encodeURIComponent(
-      soql
-    )}`;
+  // Use the signed request to fetch current user (via Canvas proxy)
+  const fetchCurrentUser = (sfContext) => {
+    if (!sfContext || !sfContext.user) {
+      console.error("Invalid Salesforce context");
+      return;
+    }
+
+    // Use relative URL — let Canvas SDK handle proxy & auth
+    const soql = `SELECT Id, Username, Name, Email FROM User WHERE Id='${sfContext.user.userId}'`;
+    const url = `/services/data/v58.0/query?q=${encodeURIComponent(soql)}`;
 
     window.Sfdc.canvas.client.ajax(url, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${oauthToken}`,
-      },
       success: function (resp) {
         console.log("User record:", resp);
         if (resp.records && resp.records.length > 0) {
@@ -92,35 +93,28 @@ function App() {
         }
       },
       error: function (err) {
-        console.error("Error fetching user:", err);
+        console.error("Error fetching user via Canvas proxy:", err);
       },
     });
   };
 
   useEffect(() => {
-    // Wait for SDK to load
     const tryInit = () => {
       if (window.Sfdc && window.Sfdc.canvas) {
         console.log("Canvas SDK available");
 
-        // Let SDK know your app is ready (if needed)
         window.Sfdc.canvas.onReady(function () {
           console.log("Canvas is ready");
 
-          // Immediately fetch a fresh signed request
+          // Fetch signed request
           fetchSignedRequest((newSR) => {
             setSignedReq(newSR);
             const ctx = decodeSignedRequest(newSR);
             setSfContext(ctx);
 
-            // From context, you can get oauthToken, instanceUrl, user context etc.
-            if (
-              ctx &&
-              ctx.client &&
-              ctx.client.oauthToken &&
-              ctx.client.instanceUrl
-            ) {
-              fetchCurrentUser(ctx.client.oauthToken, ctx.client.instanceUrl);
+            // Fetch user through Canvas proxy
+            if (ctx && ctx.user) {
+              fetchCurrentUser(ctx);
             }
           });
         });
@@ -129,7 +123,7 @@ function App() {
       }
     };
 
-    // If SDK might load later, poll
+    // Poll until SDK loads
     if (window.Sfdc && window.Sfdc.canvas) {
       tryInit();
     } else {
