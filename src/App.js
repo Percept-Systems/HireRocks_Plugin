@@ -31,43 +31,31 @@ function App() {
   //   }
   // }, []);
 
-  useEffect(() => {
-    // Function to initialize Zoho SDK
-    const initZoho = () => {
-      if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-        console.log("ZOHO SDK loaded");
+  if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
+    // Register PageLoad event
+    ZOHO.embeddedApp.on("PageLoad", function (data) {
+      console.log("PageLoad event data:", data);
 
-        // Initialize embedded app
-        window.ZOHO.embeddedApp.init();
-
-        // Register PageLoad event
-        window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-          console.log("PageLoad event data:", data);
-
-          // Fetch Leads
-          window.ZOHO.CRM.API.getAllRecords({
-            Entity: "Leads",
-            per_page: 15,
-            page: 1,
-            sort_order: "desc",
-          })
-            .then(function (response) {
-              console.log("Fetched Leads data:", response.data);
-            })
-            .catch(function (error) {
-              console.error("Failed to fetch Leads:", error);
-            });
+      // Fetch Leads
+      ZOHO.CRM.API.getAllRecords({
+        Entity: "Leads",
+        per_page: 15,
+        page: 1,
+        sort_order: "desc",
+      })
+        .then(function (response) {
+          console.log("Fetched Leads data:", response.data);
+        })
+        .catch(function (error) {
+          console.error("Failed to fetch Leads:", error);
         });
-      } else {
-        console.warn("ZOHO SDK not loaded yet.");
-      }
-    };
+    });
 
-    // Wait for the SDK to load
-    if (window.ZOHO) {
-      initZoho();
-    }
-  }, []); // run onc
+    // Initialize embedded app
+    ZOHO.embeddedApp.init();
+  } else {
+    console.warn("ZOHO SDK not loaded yet.");
+  }
 
   return (
     <Router>
