@@ -26,7 +26,7 @@ function Organization() {
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
   const [users, setUsers] = useState([]);
-  const [leads, setLeads] = useState(null);
+  const [leads, setLeads] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -50,15 +50,31 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      await ZOHO.CRM.init();
-      console.log("Zoho SDK intialized....");
-      const response = await ZOHO.CRM.API.getAllRecords({ Entity: "Leads" });
-      setLeads(response.data);
-      console.log("CRM Leads data: ", response.data);
+    // Register PageLoad event
+    window.ZOHO.embeddedApp.on("PageLoad", async function (data) {
+      console.log("PageLoad data:", data);
+
+      try {
+        // Initialize SDK
+        await window.ZOHO.CRM.init();
+        console.log("Zoho CRM SDK initialized");
+
+        // Fetch all Leads
+        const response = await window.ZOHO.CRM.API.getAllRecords({
+          Entity: "Leads",
+        });
+
+        if (response && response.data) {
+          setLeads(response.data);
+          console.log("Fetched Leads:", response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching Leads:", error);
+      }
     });
 
-    ZOHO.embeddedApp.init();
+    // Initialize embedded app
+    window.ZOHO.embeddedApp.init();
   }, []);
 
   // Salesforce sdk init()
