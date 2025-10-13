@@ -50,26 +50,41 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    // Register PageLoad event
+    // Check if Zoho SDK is loaded
+    if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
+      console.warn("ZOHO SDK not loaded. Local testing only.");
+      setLoading(false);
+      return;
+    }
+
+    // Register PageLoad event for Zoho Web Tab
     window.ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      console.log("PageLoad data:", data);
+      console.log("PageLoad data:", data); // Context info from Zoho
 
       try {
-        // Initialize SDK
+        // Initialize the CRM SDK
         await window.ZOHO.CRM.init();
         console.log("Zoho CRM SDK initialized");
 
-        // Fetch all Leads
+        // Fetch Leads (like your HTML example)
         const response = await window.ZOHO.CRM.API.getAllRecords({
           Entity: "Leads",
+          per_page: 15,
+          page: 1,
+          sort_order: "desc",
         });
 
         if (response && response.data) {
           setLeads(response.data);
-          console.log("Fetched Leads:", response.data);
+          console.log("Leads fetched:", response.data);
+        } else {
+          console.log("No Leads found.");
         }
-      } catch (error) {
-        console.error("Error fetching Leads:", error);
+      } catch (err) {
+        console.error("Error fetching Leads:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
       }
     });
 
