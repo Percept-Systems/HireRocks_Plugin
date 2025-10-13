@@ -42,7 +42,7 @@
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
-  <script>
+  <!-- <script>
     if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
       // Register PageLoad event
       ZOHO.embeddedApp.on("PageLoad", function (data) {
@@ -65,30 +65,30 @@
     }
 
 
-    // function fetchUsers(oauthToken, instanceUrl) {
-    //   fetch(`${instanceUrl}/services/data/v57.0/query/?q=SELECT+Id,Name,Email+FROM+User`, {
-    //     method: "GET",
-    //     headers: {
-    //       Authorization: `Bearer ${oauthToken}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //   })
-    //     .then(res => res.json())
-    //     .then(data => console.log("Fetched Salesforce Users:", data.records))
-    //     .catch(err => console.error("Error fetching Salesforce users:", err));
-    // }
+    function fetchUsers(oauthToken, instanceUrl) {
+      fetch(`${instanceUrl}/services/data/v57.0/query/?q=SELECT+Id,Name,Email+FROM+User`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${oauthToken}`,
+          "Content-Type": "application/json",
+        },
+      })
+        .then(res => res.json())
+        .then(data => console.log("Fetched Salesforce Users:", data.records))
+        .catch(err => console.error("Error fetching Salesforce users:", err));
+    }
 
-    // if (window.Sfdc && window.Sfdc.canvas) {
-    //   console.log("Salesforce SDK initializing...");
-    //   window.Sfdc.canvas.client.subscribe(window, "signedRequest", function (signedRequest) {
-    //     const { oauthToken, instanceUrl } = signedRequest.client;
-    //     console.log("Salesforce Oauth token:", oauthToken);
-    //     fetchUsers(oauthToken, instanceUrl);
-    //   });
-    // } else {
-    //   console.warn("Salesforce SDK not loaded yet.");
-    // }
+    if (window.Sfdc && window.Sfdc.canvas) {
+      console.log("Salesforce SDK initializing...");
+      window.Sfdc.canvas.client.subscribe(window, "signedRequest", function (signedRequest) {
+        const { oauthToken, instanceUrl } = signedRequest.client;
+        console.log("Salesforce Oauth token:", oauthToken);
+        fetchUsers(oauthToken, instanceUrl);
+      });
+    } else {
+      console.warn("Salesforce SDK not loaded yet.");
+    }
 
-  </script>
+  </script> -->
 
 </html>

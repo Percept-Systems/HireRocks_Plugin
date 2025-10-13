@@ -25,8 +25,6 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [leads, setLeads] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -48,85 +46,6 @@ function Organization() {
     console.log("Detected platform:", detectedPlatform);
     setPlatform(detectedPlatform);
   }, []);
-
-  useEffect(() => {
-    // Check if Zoho SDK is loaded
-    if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
-      console.warn("ZOHO SDK not loaded. Local testing only.");
-      setLoading(false);
-      return;
-    }
-
-    // Register PageLoad event for Zoho Web Tab
-    window.ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      console.log("PageLoad data:", data); // Context info from Zoho
-
-      try {
-        // Initialize the CRM SDK
-        await window.ZOHO.CRM.init();
-        console.log("Zoho CRM SDK initialized");
-
-        // Fetch Leads (like your HTML example)
-        const response = await window.ZOHO.CRM.API.getAllRecords({
-          Entity: "Leads",
-          per_page: 15,
-          page: 1,
-          sort_order: "desc",
-        });
-
-        if (response && response.data) {
-          setLeads(response.data);
-          console.log("Leads fetched:", response.data);
-        } else {
-          console.log("No Leads found.");
-        }
-      } catch (err) {
-        console.error("Error fetching Leads:", err);
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    // Initialize embedded app
-    window.ZOHO.embeddedApp.init();
-  }, []);
-
-  // Salesforce sdk init()
-
-  useEffect(() => {
-    if (window.Sfdc && window.Sfdc.canvas) {
-      console.log("Salesforce sdk intializing...");
-      window.Sfdc.canvas.client.subscribe(
-        window,
-        "signedRequest",
-        function (signedRequest) {
-          const { oauthToken, instanceUrl } = signedRequest.client;
-          console.log("Salesforce Oauth token....", oauthToken);
-          fetchUsers(oauthToken, instanceUrl);
-        }
-      );
-    }
-  }, []);
-
-  const fetchUsers = async (token, instanceUrl) => {
-    try {
-      const query = "SELECT Id, Name, Email FROM User LIMIT 10";
-      const res = await fetch(
-        `${instanceUrl}/services/data/v59.0/query?q=${encodeURIComponent(
-          query
-        )}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await res.json();
-      console.log("Salesforce Users", data.records);
-      setUsers(data.records || []);
-    } catch (err) {
-      console.error("Error fetching Salesforce users:", err);
-    }
-  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
