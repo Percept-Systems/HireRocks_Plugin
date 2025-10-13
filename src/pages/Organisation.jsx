@@ -50,30 +50,14 @@ function Organization() {
   }, []);
 
   useEffect(() => {
-    // Register PageLoad event
     ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      console.log("PageLoad data:", data);
-
-      try {
-        // Initialize SDK
-        await ZOHO.CRM.init();
-        console.log("Zoho CRM SDK initialized");
-
-        // Fetch all Leads
-        const response = await ZOHO.CRM.API.getAllRecords({
-          Entity: "Leads",
-        });
-
-        if (response && response.data) {
-          setLeads(response.data);
-          console.log("Fetched Leads:", response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching Leads:", error);
-      }
+      await ZOHO.CRM.init();
+      console.log("Zoho SDK intialized....");
+      const response = await ZOHO.CRM.API.getAllRecords({ Entity: "Leads" });
+      setLeads(response.data);
+      console.log("CRM Leads data: ", response.data);
     });
 
-    // Initialize embedded app
     ZOHO.embeddedApp.init();
   }, []);
 
