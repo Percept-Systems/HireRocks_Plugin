@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Organization from "./pages/Organisation";
 import DashboardEmp from "./pages/DashboardEmp";
@@ -35,51 +35,6 @@ function App() {
     window.ZOHO.embeddedApp.init();
   } else {
     console.warn("ZOHO SDK not loaded yet.");
-  }
-
-  // Salesforce sdk setup and fetch data method
-
-  // Wait for SDK to load
-  const tryInit = () => {
-    if (window.Sfdc && window.Sfdc.canvas) {
-      console.log("Canvas SDK available");
-
-      // Let SDK know your app is ready (if needed)
-      window.Sfdc.canvas.onReady(function () {
-        console.log("Canvas is ready");
-
-        // Immediately fetch a fresh signed request
-        fetchSignedRequest((newSR) => {
-          setSignedReq(newSR);
-          const ctx = decodeSignedRequest(newSR);
-          setSfContext(ctx);
-
-          // From context, you can get oauthToken, instanceUrl, user context etc.
-          if (
-            ctx &&
-            ctx.client &&
-            ctx.client.oauthToken &&
-            ctx.client.instanceUrl
-          ) {
-            fetchCurrentUser(ctx.client.oauthToken, ctx.client.instanceUrl);
-          }
-        });
-      });
-    } else {
-      console.warn("Canvas SDK not loaded yet");
-    }
-  };
-
-  // If SDK might load later, poll
-  if (window.Sfdc && window.Sfdc.canvas) {
-    tryInit();
-  } else {
-    const iv = setInterval(() => {
-      if (window.Sfdc && window.Sfdc.canvas) {
-        clearInterval(iv);
-        tryInit();
-      }
-    }, 300);
   }
 
   const decodeSignedRequest = (signedRequest) => {
@@ -141,6 +96,51 @@ function App() {
       },
     });
   };
+
+  useEffect(() => {
+    // Wait for SDK to load
+    const tryInit = () => {
+      if (window.Sfdc && window.Sfdc.canvas) {
+        console.log("Canvas SDK available");
+
+        // Let SDK know your app is ready (if needed)
+        window.Sfdc.canvas.onReady(function () {
+          console.log("Canvas is ready");
+
+          // Immediately fetch a fresh signed request
+          fetchSignedRequest((newSR) => {
+            setSignedReq(newSR);
+            const ctx = decodeSignedRequest(newSR);
+            setSfContext(ctx);
+
+            // From context, you can get oauthToken, instanceUrl, user context etc.
+            if (
+              ctx &&
+              ctx.client &&
+              ctx.client.oauthToken &&
+              ctx.client.instanceUrl
+            ) {
+              fetchCurrentUser(ctx.client.oauthToken, ctx.client.instanceUrl);
+            }
+          });
+        });
+      } else {
+        console.warn("Canvas SDK not loaded yet");
+      }
+    };
+
+    // If SDK might load later, poll
+    if (window.Sfdc && window.Sfdc.canvas) {
+      tryInit();
+    } else {
+      const iv = setInterval(() => {
+        if (window.Sfdc && window.Sfdc.canvas) {
+          clearInterval(iv);
+          tryInit();
+        }
+      }, 300);
+    }
+  }, []);
 
   return (
     <Router>
