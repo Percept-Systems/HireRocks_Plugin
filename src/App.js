@@ -33,11 +33,11 @@ function App() {
 
   if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
     // Register PageLoad event
-    ZOHO.embeddedApp.on("PageLoad", function (data) {
+    window.ZOHO.embeddedApp.on("PageLoad", function (data) {
       console.log("PageLoad event data:", data);
 
       // Fetch Leads
-      ZOHO.CRM.API.getAllRecords({
+      window.ZOHO.CRM.API.getAllRecords({
         Entity: "Leads",
         per_page: 15,
         page: 1,
@@ -52,7 +52,7 @@ function App() {
     });
 
     // Initialize embedded app
-    ZOHO.embeddedApp.init();
+    window.ZOHO.embeddedApp.init();
   } else {
     console.warn("ZOHO SDK not loaded yet.");
   }
