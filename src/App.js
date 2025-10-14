@@ -11,32 +11,6 @@ function App() {
   const [sfContext, setSfContext] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
 
-  if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-    // Register PageLoad event
-    window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-      console.log("PageLoad event data:", data);
-
-      // Fetch Leads
-      window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads",
-        per_page: 15,
-        page: 1,
-        sort_order: "desc",
-      })
-        .then(function (response) {
-          console.log("Fetched Leads data:", response.data);
-        })
-        .catch(function (error) {
-          console.error("Failed to fetch Leads:", error);
-        });
-    });
-
-    // Initialize embedded app
-    window.ZOHO.embeddedApp.init();
-  } else {
-    console.warn("ZOHO SDK not loaded yet.");
-  }
-
   const decodeSignedRequest = (signedRequest) => {
     try {
       // Signed request = signature + "." + Base64-encoded JSON context
