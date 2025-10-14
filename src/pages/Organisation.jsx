@@ -90,7 +90,7 @@ function Organization() {
 
       // Fetch Leads from Zoho CRM
       window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads", // can change to "users" or "Contacts" if needed
+        Entity: "users", // can change to "users" or "Contacts" if needed
         per_page: 15,
         page: 1,
         sort_order: "desc",
