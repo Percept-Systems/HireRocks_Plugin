@@ -16,8 +16,8 @@ function Organization() {
   const [FirstName, setFirstName] = useState("");
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
-  const [errors, setErrors] = useState({});
-  const [error, setError] = useState({});
+  const [errors, setErrors] = useState({}); // State to store validation errors
+  const [error, setError] = useState({}); // State to store validation errors
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
@@ -25,7 +25,7 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
-  const [employeesList, setEmployeesList] = useState([]);
+  const [employeesList, setEmployeesList] = useState([]); 
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -48,7 +48,8 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-  // zoho sdk setup and fetch users method
+
+  // zoho sdk setup and fetch users data
 
   if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
     window.ZOHO.embeddedApp.on("PageLoad", function (data) {
@@ -91,6 +92,7 @@ function Organization() {
   } else {
     console.warn("ZOHO SDK not loaded yet.");
   }
+
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
@@ -229,7 +231,6 @@ function Organization() {
           Password: organizationPass,
           OrganizationTitle: organizationName,
           IsRegisterationSuccessFull: true,
-          Platform: platform,
         });
         console.log(response);
         if (response.status == 200) {
@@ -326,6 +327,7 @@ function Organization() {
     }
     setStep(5);
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-green-950  to-green-200  text-white flex items-center justify-center">
@@ -478,7 +480,7 @@ function Organization() {
         )}
 
         {/* Step 4: Add Employees */}
-        {createMode && step === 3 && (
+     {createMode && step === 3 && (
           <div className="w-[400px] mx-auto">
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Select Employees (max 10)
@@ -516,9 +518,7 @@ function Organization() {
             {isOpen && (
               <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
                 {employeesList.map((emp) => {
-                  const isSelected = selectedEmployees.some(
-                    (e) => e.id === emp.id
-                  );
+                  const isSelected = selectedEmployees.some((e) => e.id === emp.id);
                   return (
                     <div
                       key={emp.id}
@@ -528,9 +528,7 @@ function Organization() {
                       }`}
                     >
                       <span className="text-gray-800">{emp.name}</span>
-                      {isSelected && (
-                        <span className="text-blue-600 font-bold">✓</span>
-                      )}
+                      {isSelected && <span className="text-blue-600 font-bold">✓</span>}
                     </div>
                   );
                 })}
@@ -547,8 +545,8 @@ function Organization() {
             >
               Done
             </button>
-          </div>
-        )}
+            </div>
+     )}
 
         {/* Step 5: Final Confirmation */}
         {step === 5 && (
