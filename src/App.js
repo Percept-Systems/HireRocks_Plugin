@@ -7,26 +7,25 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  const [canvasContext, setCanvasContext] = useState(null);
-
   useEffect(() => {
-      const handleMessage = (event) => {
-          if (event.origin !== "https://can98.salesforce.com") {
-              return; // Ignore messages from unknown origins
-          }
+    const handleMessage = (event) => {
+      if (event.origin !== "https://can98.salesforce.com") {
+        return; // Ignore messages from unknown origins
+      }
 
-          const data = event.data;
-          if (data && data.client) {
-              setCanvasContext(data.client);
-              console.log("Received canvas context:", data.client);
-          }
-      };
+      const data = event.data;
+      if (data && data.client) {
+        setCanvasContext(data.client);
+        console.log("Received canvas context:", data.client);
+      }
+    };
 
-      window.addEventListener("message", handleMessage);
+    window.addEventListener("message", handleMessage);
 
-      return () => {
-          window.removeEventListener("message", handleMessage);
-      };
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, []);
 
   return (
     <Router>
