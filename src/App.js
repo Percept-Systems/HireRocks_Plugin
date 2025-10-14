@@ -13,14 +13,13 @@ function App() {
 
   const decodeSignedRequest = (signedRequest) => {
     try {
-      // Signed request = signature + "." + Base64-encoded JSON context
       const parts = signedRequest.split(".");
       if (parts.length !== 2) {
         console.error("Invalid signed request format");
         return null;
       }
       const encodedContext = parts[1];
-      const json = window.Sfdc.canvas.decode(encodedContext); // SDK helper
+      const json = window.Sfdc.canvas.decode(encodedContext);
       return JSON.parse(json);
     } catch (e) {
       console.error("Failed to decode signed request:", e);
@@ -28,7 +27,6 @@ function App() {
     }
   };
 
-  // Request (or refresh) the signed request
   const fetchSignedRequest = (callback) => {
     if (!window.Sfdc || !window.Sfdc.canvas || !window.Sfdc.canvas.client) {
       console.error("Canvas SDK not available");
@@ -41,29 +39,31 @@ function App() {
         callback(newSignedReq);
       } else {
         console.error("refreshSignedRequest failed:", data);
-        // Optionally fallback to repost()
-        // window.Sfdc.canvas.client.repost({ refresh: true });
       }
     });
   };
 
-  // Use the signed request to fetch current user (via Canvas proxy)
   const fetchCurrentUser = (sfContext) => {
-    if (!sfContext || !sfContext.user) {
+    if (!sfContext || !sfContext.user || !sfContext.client) {
       console.error("Invalid Salesforce context");
       return;
     }
 
-    // Use relative URL — let Canvas SDK handle proxy & auth
     const soql = `SELECT Id, Username, Name, Email FROM User WHERE Id='${sfContext.user.userId}'`;
     const url = `/services/data/v58.0/query?q=${encodeURIComponent(soql)}`;
 
     window.Sfdc.canvas.client.ajax(url, {
+      client: sfContext.client, // Critical!
       method: "GET",
-      success: function (resp) {
-        console.log("User record:", resp);
-        if (resp.records && resp.records.length > 0) {
-          setUserInfo(resp.records[0]);
+      success: function (data) {
+        console.log("Canvas AJAX response:", data);
+        // Response data is in data.payload
+        if (
+          data.payload &&
+          data.payload.records &&
+          data.payload.records.length > 0
+        ) {
+          setUserInfo(data.payload.records[0]);
         }
       },
       error: function (err) {
@@ -72,43 +72,42 @@ function App() {
     });
   };
 
-  useEffect(() => {
-    const tryInit = () => {
-      if (window.Sfdc && window.Sfdc.canvas) {
-        console.log("Canvas SDK available");
-
-        window.Sfdc.canvas.onReady(function () {
-          console.log("Canvas is ready");
-
-          // Fetch signed request
-          fetchSignedRequest((newSR) => {
-            setSignedReq(newSR);
-            const ctx = decodeSignedRequest(newSR);
-            setSfContext(ctx);
-
-            // Fetch user through Canvas proxy
-            if (ctx && ctx.user) {
-              fetchCurrentUser(ctx);
-            }
-          });
-        });
-      } else {
-        console.warn("Canvas SDK not loaded yet");
-      }
-    };
-
-    // Poll until SDK loads
+  const tryInit = () => {
     if (window.Sfdc && window.Sfdc.canvas) {
-      tryInit();
+      console.log("Canvas SDK available");
+
+      window.Sfdc.canvas.onReady(function () {
+        console.log("Canvas is ready");
+
+        fetchSignedRequest((newSR) => {
+          setSignedReq(newSR);
+          const ctx = decodeSignedRequest(newSR);
+          console.log("Decoded context:", ctx);
+          setSfContext(ctx);
+
+          if (ctx && ctx.user && ctx.client) {
+            fetchCurrentUser(ctx);
+          }
+        });
+      });
     } else {
-      const iv = setInterval(() => {
-        if (window.Sfdc && window.Sfdc.canvas) {
-          clearInterval(iv);
-          tryInit();
-        }
-      }, 300);
+      console.warn("Canvas SDK not loaded yet");
     }
-  }, []);
+  };
+
+  if (window.Sfdc && window.Sfdc.canvas) {
+    tryInit();
+  } else {
+    const iv = setInterval(() => {
+      if (window.Sfdc && window.Sfdc.canvas) {
+        clearInterval(iv);
+        tryInit();
+      }
+    }, 300);
+
+    // Cleanup
+    return () => clearInterval(iv);
+  }
 
   return (
     <Router>
