@@ -11,21 +11,20 @@ function Organization() {
   const [organizationPass, setOrganizationPass] = useState("");
   const [email, setEmail] = useState("");
   const [mailContent, setMailContent] = useState("");
+  const [createMode, setCreateMode] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [FirstName, setFirstName] = useState("");
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
   const [errors, setErrors] = useState({}); // State to store validation errors
+  const [error, setError] = useState({}); // State to store validation errors
   const [otpError, setotpError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
   const [platform, setPlatform] = useState(null);
-  const [zohoInfo, setZohoInfo] = useState(null);
-  const [createMode, setCreateMode] = useState(true);
-  const [employeesList, setEmployeesList] = useState([]);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [zohoInfo, setZohoInfo] = useState(null);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -48,46 +47,6 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
-  // Zoho sdk setup and fetch user method
-
-  if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-    // Register PageLoad event
-    window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-      console.log("PageLoad event data:", data);
-
-      // Fetch Leads
-      window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads",
-        per_page: 15,
-        page: 1,
-        sort_order: "desc",
-      })
-        .then(function (response) {
-          console.log("Fetched Leads data:", response.data);
-          
-          // Transform and store leads in state
-          if (response.data && Array.isArray(response.data)) {
-            const transformedLeads = response.data.map(lead => ({
-              id: lead.id,
-              name: lead.Full_Name || lead.Last_Name || 'Unnamed Lead',
-              email: lead.Email || '',
-              company: lead.Company || '',
-              phone: lead.Phone || ''
-            }));
-            
-            setEmployeesList(transformedLeads);
-          }
-        })
-        .catch(function (error) {
-          console.error("Failed to fetch Leads:", error);
-        });
-    });
-
-    // Initialize embedded app
-    window.ZOHO.embeddedApp.init();
-  } else {
-    console.warn("ZOHO SDK not loaded yet.");
-  }
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
@@ -305,38 +264,30 @@ function Organization() {
     }
   };
 
+  // Add employee multi select functions
+  const employeesList = Array.from({ length: 20 }, (_, i) => ({
+    id: i + 1,
+    name: `Employee ${i + 1}`,
+    email: `employee${i + 1}@example.com`,
+  }));
 
- // Handle employee selection/deselection
- const handleSelect = (emp) => {
-  const isSelected = selectedEmployees.some((e) => e.id === emp.id);
-  
-  if (isSelected) {
-    // Deselect
-    setSelectedEmployees(selectedEmployees.filter((e) => e.id !== emp.id));
-  } else {
-    // Select (max 10)
-    if (selectedEmployees.length < 10) {
-      setSelectedEmployees([...selectedEmployees, emp]);
+  const handleSelect = (employee) => {
+    const isAlreadySelected = selectedEmployees.find(
+      (e) => e.id === employee.id
+    );
+
+    if (isAlreadySelected) {
+      // Unselect if already selected
+      setSelectedEmployees(
+        selectedEmployees.filter((e) => e.id !== employee.id)
+      );
+    } else if (selectedEmployees.length < 10) {
+      // Add if under limit
+      setSelectedEmployees([...selectedEmployees, employee]);
     } else {
-      alert("You can only select up to 10 employees");
-    }
-  }
-};
-
-// Close dropdown when clicking outside
-useEffect(() => {
-  const handleClickOutside = (e) => {
-    if (isOpen && !e.target.closest('.dropdown-container')) {
-      setIsOpen(false);
+      alert("You can select a maximum of 10 employees.");
     }
   };
-
-  document.addEventListener('click', handleClickOutside);
-  return () => document.removeEventListener('click', handleClickOutside);
-}, [isOpen]);
-
-
-
 
   // Handle Done Button (Confirm Employee Addition)
   const handleDone = async () => {
@@ -499,111 +450,90 @@ useEffect(() => {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-        <div className="w-[400px] mx-auto dropdown-container">
-          <label className="block text-lg font-bold text-gray-700 mb-2">
-            Select Employees (max 10)
-          </label>
+          <div className="w-[400px] mx-auto">
+            <label className="block text-lg font-bold text-gray-700 mb-2">
+              Select Employees (max 10)
+            </label>
 
-          {loading ? (
-            <div className="border border-gray-300 rounded-md p-3 bg-white text-gray-500">
-              Loading leads from ZOHO...
-            </div>
-          ) : error ? (
-            <div className="border border-red-300 rounded-md p-3 bg-red-50 text-red-600">
-              {error}
-            </div>
-          ) : (
-            <>
-              {/* Dropdown box */}
-              <div
-                className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white"
-                onClick={() => setIsOpen(!isOpen)}
-              >
-                {selectedEmployees.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEmployees.map((emp) => (
-                      <span
-                        key={emp.id}
-                        className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
+            {/* Dropdown box */}
+            <div
+              className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {selectedEmployees.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedEmployees.map((emp) => (
+                    <span
+                      key={emp.id}
+                      className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
+                    >
+                      {emp.name}
+                      <button
+                        className="ml-1 text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelect(emp);
+                        }}
                       >
-                        {emp.name}
-                        <button
-                          className="ml-1 text-red-500"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelect(emp);
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-gray-400">Select employees...</span>
-                )}
-                
-                {/* Counter */}
-                <div className="text-xs text-gray-500 mt-2">
-                  {selectedEmployees.length} / 10 selected
+                        ✕
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              </div>
-
-              {/* Dropdown list */}
-              {isOpen && (
-                <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
-                  {employeesList.length > 0 ? (
-                    employeesList.map((emp) => {
-                      const isSelected = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                      );
-                      return (
-                        <div
-                          key={emp.id}
-                          onClick={() => handleSelect(emp)}
-                          className={`flex justify-between items-center p-2 cursor-pointer ${
-                            isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                          }`}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-gray-800 font-medium">
-                              {emp.name}
-                            </span>
-                            {emp.email && (
-                              <span className="text-xs text-gray-500">
-                                {emp.email}
-                              </span>
-                            )}
-                          </div>
-                          {isSelected && (
-                            <span className="text-blue-600 font-bold">✓</span>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="p-4 text-center text-gray-500">
-                      No leads available
-                    </div>
-                  )}
-                </div>
+              ) : (
+                <span className="text-gray-400">Select employees...</span>
               )}
-            </>
-          )}
-        </div>
-      )}
+            </div>
 
-      {/* Display selected employees (for testing) */}
-      {selectedEmployees.length > 0 && (
-        <div className="mt-4 w-[400px] mx-auto">
-          <h3 className="font-bold text-gray-700 mb-2">Selected Employees:</h3>
-          <ul className="list-disc list-inside text-sm text-gray-600">
-            {selectedEmployees.map(emp => (
-              <li key={emp.id}>{emp.name} - {emp.email}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+            {/* Dropdown list */}
+            {isOpen && (
+              <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
+                {employeesList.map((emp) => {
+                  const isSelected = selectedEmployees.some(
+                    (e) => e.id === emp.id
+                  );
+                  return (
+                    <div
+                      key={emp.id}
+                      onClick={() => handleSelect(emp)}
+                      className={`flex justify-between items-center p-2 cursor-pointer ${
+                        isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="text-gray-800">{emp.name}</span>
+                      {isSelected && (
+                        <span className="text-blue-600 font-bold">✓</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Display selected count */}
+            <p className="text-sm text-gray-600 mt-2">
+              Selected: {selectedEmployees.length} / 10
+            </p>
+
+            <button
+              onClick={handleDone}
+              className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
+            >
+              Done
+            </button>
+
+            <div style={{ padding: "1rem" }}>
+              <h2>Zoho CRM Connected</h2>
+              <p>
+                <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
+              </p>
+              <p>
+                <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
+              </p>
+              <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
+            </div>
+          </div>
+        )}
 
         {/* Step 5: Final Confirmation */}
         {step === 5 && (
