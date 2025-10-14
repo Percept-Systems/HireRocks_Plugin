@@ -7,39 +7,27 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
+  const [canvasContext, setCanvasContext] = useState(null);
+
   useEffect(() => {
     const handleMessage = (event) => {
+      if (event.origin !== "https://can98.salesforce.com") {
+        return; // Ignore messages from unknown origins
+      }
+
       const data = event.data;
       if (data && data.client) {
-        console.log("Signed request received in React:", data);
-        window.canvasContext = data.client;
-
-        // Now you can fetch Salesforce data
-        fetchData(data.client.instanceUrl, data.client.oauthToken);
+        setCanvasContext(data.client);
+        console.log("Received canvas context:", data.client);
       }
     };
 
     window.addEventListener("message", handleMessage);
 
-    return () => window.removeEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
   }, []);
-
-  const fetchData = async (instanceUrl, accessToken) => {
-    const query = "SELECT Id, Name FROM Account LIMIT 10";
-    const apiUrl = `${instanceUrl}/services/data/v59.0/query/?q=${encodeURIComponent(
-      query
-    )}`;
-
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-    console.log("Salesforce data:", data);
-  };
 
   return (
     <Router>
