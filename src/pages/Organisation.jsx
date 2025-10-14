@@ -16,8 +16,8 @@ function Organization() {
   const [FirstName, setFirstName] = useState("");
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
-  const [errors, setErrors] = useState({}); // State to store validation errors
-  const [error, setError] = useState({}); // State to store validation errors
+  const [errors, setErrors] = useState({});
+  const [error, setError] = useState({});
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
@@ -25,6 +25,7 @@ function Organization() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [zohoInfo, setZohoInfo] = useState(null);
+  const [employeesList, setEmployeesList] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
@@ -46,6 +47,50 @@ function Organization() {
     console.log("Detected platform:", detectedPlatform);
     setPlatform(detectedPlatform);
   }, []);
+
+  // zoho sdk setup and fetch users method
+
+  if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
+    window.ZOHO.embeddedApp.on("PageLoad", function (data) {
+      console.log("PageLoad event data:", data);
+
+      // Fetch Leads from Zoho CRM
+      window.ZOHO.CRM.API.getAllRecords({
+        Entity: "Leads", // can change to "users" or "Contacts" if needed
+        per_page: 15,
+        page: 1,
+        sort_order: "desc",
+      })
+        .then(function (response) {
+          console.log("Fetched Leads data:", response.data);
+          if (response.data && Array.isArray(response.data)) {
+            const transformedLeads = response.data.map((lead) => ({
+              id: lead.id,
+              name: lead.Full_Name || lead.Last_Name || "Unnamed Lead",
+              email: lead.Email || "",
+              company: lead.Company || "",
+              phone: lead.Phone || "",
+            }));
+            setEmployeesList(transformedLeads);
+          }
+        })
+        .catch(function (error) {
+          console.error("Failed to fetch Leads:", error);
+        });
+
+      // Fetch current user/org info
+      Promise.all([
+        window.ZOHO.CRM.CONFIG.getCurrentUser(),
+        window.ZOHO.CRM.CONFIG.getOrgInfo(),
+      ])
+        .then(([user, org]) => setZohoInfo({ user, org }))
+        .catch((err) => console.error("Error fetching Zoho info:", err));
+    });
+
+    window.ZOHO.embeddedApp.init();
+  } else {
+    console.warn("ZOHO SDK not loaded yet.");
+  }
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
@@ -265,33 +310,17 @@ function Organization() {
   };
 
   // Add employee multi select functions
-  const employeesList = Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    name: `Employee ${i + 1}`,
-    email: `employee${i + 1}@example.com`,
-  }));
-
-  const handleSelect = (employee) => {
-    const isAlreadySelected = selectedEmployees.find(
-      (e) => e.id === employee.id
-    );
-
-    if (isAlreadySelected) {
-      // Unselect if already selected
-      setSelectedEmployees(
-        selectedEmployees.filter((e) => e.id !== employee.id)
-      );
+  const handleSelect = (emp) => {
+    const isSelected = selectedEmployees.some((e) => e.id === emp.id);
+    if (isSelected) {
+      setSelectedEmployees(selectedEmployees.filter((e) => e.id !== emp.id));
     } else if (selectedEmployees.length < 10) {
-      // Add if under limit
-      setSelectedEmployees([...selectedEmployees, employee]);
-    } else {
-      alert("You can select a maximum of 10 employees.");
+      setSelectedEmployees([...selectedEmployees, emp]);
     }
   };
 
-  // Handle Done Button (Confirm Employee Addition)
   const handleDone = async () => {
-    if (employees.length === 0) {
+    if (selectedEmployees.length === 0) {
       alert("No employees to add.");
       return;
     }
@@ -455,7 +484,6 @@ function Organization() {
               Select Employees (max 10)
             </label>
 
-            {/* Dropdown box */}
             <div
               className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white"
               onClick={() => setIsOpen(!isOpen)}
@@ -485,7 +513,6 @@ function Organization() {
               )}
             </div>
 
-            {/* Dropdown list */}
             {isOpen && (
               <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
                 {employeesList.map((emp) => {
@@ -510,7 +537,6 @@ function Organization() {
               </div>
             )}
 
-            {/* Display selected count */}
             <p className="text-sm text-gray-600 mt-2">
               Selected: {selectedEmployees.length} / 10
             </p>
@@ -521,17 +547,6 @@ function Organization() {
             >
               Done
             </button>
-
-            <div style={{ padding: "1rem" }}>
-              <h2>Zoho CRM Connected</h2>
-              <p>
-                <strong>User:</strong> {zohoInfo.user?.users?.[0]?.full_name}
-              </p>
-              <p>
-                <strong>Org:</strong> {zohoInfo.org?.org?.company_name}
-              </p>
-              <pre>{JSON.stringify(zohoInfo, null, 2)}</pre>
-            </div>
           </div>
         )}
 
