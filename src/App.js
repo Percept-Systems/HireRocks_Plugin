@@ -7,107 +7,73 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  const [signedReq, setSignedReq] = useState(null);
-  const [sfContext, setSfContext] = useState(null);
-  const [userInfo, setUserInfo] = useState(null);
+  const [sfData, setSfData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const decodeSignedRequest = (signedRequest) => {
-    try {
-      const parts = signedRequest.split(".");
-      if (parts.length !== 2) {
-        console.error("Invalid signed request format");
-        return null;
-      }
-      const encodedContext = parts[1];
-      const json = window.Sfdc.canvas.decode(encodedContext);
-      return JSON.parse(json);
-    } catch (e) {
-      console.error("Failed to decode signed request:", e);
-      return null;
-    }
-  };
-
-  const fetchSignedRequest = (callback) => {
-    if (!window.Sfdc || !window.Sfdc.canvas || !window.Sfdc.canvas.client) {
-      console.error("Canvas SDK not available");
-      return;
-    }
-
-    window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
-      if (data.status === 200) {
-        const newSignedReq = data.payload.response;
-        callback(newSignedReq);
-      } else {
-        console.error("refreshSignedRequest failed:", data);
-      }
-    });
-  };
-
-  const fetchCurrentUser = (sfContext) => {
-    if (!sfContext || !sfContext.user || !sfContext.client) {
-      console.error("Invalid Salesforce context");
-      return;
-    }
-
-    const soql = `SELECT Id, Username, Name, Email FROM User WHERE Id='${sfContext.user.userId}'`;
-    const url = `/services/data/v58.0/query?q=${encodeURIComponent(soql)}`;
-
-    window.Sfdc.canvas.client.ajax(url, {
-      client: sfContext.client, // Critical!
-      method: "GET",
-      success: function (data) {
-        console.log("Canvas AJAX response:", data);
-        // Response data is in data.payload
-        if (
-          data.payload &&
-          data.payload.records &&
-          data.payload.records.length > 0
-        ) {
-          setUserInfo(data.payload.records[0]);
+  useEffect(() => {
+    const fetchSalesforceData = async () => {
+      try {
+        // Wait for Salesforce Canvas SDK to be available
+        if (!window.Sfdc || !window.Sfdc.canvas) {
+          console.log("Waiting for Salesforce Canvas SDK...");
+          setTimeout(fetchSalesforceData, 100);
+          return;
         }
-      },
-      error: function (err) {
-        console.error("Error fetching user via Canvas proxy:", err);
-      },
-    });
-  };
 
-  const tryInit = () => {
-    if (window.Sfdc && window.Sfdc.canvas) {
-      console.log("Canvas SDK available");
+        // Get the signed request from Salesforce
+        window.Sfdc.canvas.client.ctx(async (msg) => {
+          if (msg.status === 200) {
+            const signedRequest = msg.payload;
+            const instanceUrl = signedRequest.client.instanceUrl;
+            const accessToken = signedRequest.client.oauthToken;
 
-      window.Sfdc.canvas.onReady(function () {
-        console.log("Canvas is ready");
+            console.log("Salesforce Context:", {
+              instanceUrl,
+              userId: signedRequest.context.user.userId,
+              orgId: signedRequest.context.organization.organizationId,
+            });
 
-        fetchSignedRequest((newSR) => {
-          setSignedReq(newSR);
-          const ctx = decodeSignedRequest(newSR);
-          console.log("Decoded context:", ctx);
-          setSfContext(ctx);
+            // Fetch data from Salesforce
+            try {
+              const response = await fetch(
+                `${instanceUrl}/services/data/v59.0/query/?q=SELECT Id, Name FROM Account LIMIT 10`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
 
-          if (ctx && ctx.user && ctx.client) {
-            fetchCurrentUser(ctx);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              const data = await response.json();
+              console.log("Salesforce Data:", data);
+              setSfData(data.records);
+              setLoading(false);
+            } catch (fetchError) {
+              console.error("Error fetching Salesforce data:", fetchError);
+              setError(fetchError.message);
+              setLoading(false);
+            }
+          } else {
+            console.error("Failed to get signed request:", msg);
+            setError("Failed to authenticate with Salesforce");
+            setLoading(false);
           }
-        });
-      });
-    } else {
-      console.warn("Canvas SDK not loaded yet");
-    }
-  };
-
-  if (window.Sfdc && window.Sfdc.canvas) {
-    tryInit();
-  } else {
-    const iv = setInterval(() => {
-      if (window.Sfdc && window.Sfdc.canvas) {
-        clearInterval(iv);
-        tryInit();
+        }, window.Sfdc.canvas.oauth.token);
+      } catch (err) {
+        console.error("Error initializing Canvas:", err);
+        setError(err.message);
+        setLoading(false);
       }
-    }, 300);
+    };
 
-    // Cleanup
-    return () => clearInterval(iv);
-  }
+    fetchSalesforceData();
+  }, []);
 
   return (
     <Router>
