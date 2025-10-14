@@ -7,27 +7,38 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  const [canvasContext, setCanvasContext] = useState(null);
+  const [signedRequest, setSignedRequest] = useState(null);
 
   useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.origin !== "https://can98.salesforce.com") {
-        return; // Ignore messages from unknown origins
+    // Wait until Canvas SDK is loaded
+    const fetchSignedRequest = () => {
+      if (!window.Sfdc || !window.Sfdc.canvas || !window.Sfdc.canvas.client) {
+        console.log("Waiting for Canvas SDK...");
+        setTimeout(fetchSignedRequest, 100);
+        return;
       }
 
-      const data = event.data;
-      if (data && data.client) {
-        setCanvasContext(data.client);
-        console.log("Received canvas context:", data.client);
-      }
+      console.log("Canvas SDK loaded, requesting signed request...");
+
+      window.Sfdc.canvas.client.refreshSignedRequest(function (response) {
+        console.log("refreshSignedRequest callback fired:", response);
+        if (response && response.status === 200 && response.payload?.response) {
+          setSignedRequest(response.payload.response);
+        } else {
+          console.error("Failed to get signed request:", response);
+        }
+      });
     };
 
-    window.addEventListener("message", handleMessage);
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
+    fetchSignedRequest();
   }, []);
+
+  useEffect(() => {
+    if (signedRequest) {
+      // Decode signed request if needed or extract client info
+      console.log("Signed request received:", signedRequest);
+    }
+  }, [signedRequest]);
 
   return (
     <Router>
