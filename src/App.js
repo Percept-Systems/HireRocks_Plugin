@@ -7,6 +7,8 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
+  const [canvasContext, setCanvasContext] = useState(null);
+
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.origin !== "https://can98.salesforce.com") {
