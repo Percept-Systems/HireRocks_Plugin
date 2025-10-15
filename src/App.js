@@ -7,6 +7,8 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
+  const [SignedRequest, setSignedRequest] = useState(null);
+
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.data && event.data.client) {
