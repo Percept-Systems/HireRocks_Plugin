@@ -22,11 +22,14 @@ function App() {
   }, []);
 
   window.Sfdc.canvas(function () {
+    console.log("sdk sf init........");
     window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
       if (data.status === 200) {
+        console.log("data.... ", data);
         var signedRequest = data.payload.response;
         var part = signedRequest.split(".")[1];
         var sr = JSON.parse(window.Sfdc.canvas.decode(part));
+        console.log("Signed request...", signedRequest);
 
         // Example: Query Salesforce data
         var queryUrl =
