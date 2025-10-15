@@ -484,69 +484,75 @@ function Organization() {
               Select Employees (max 10)
             </label>
 
-            <div
-              className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {selectedEmployees.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {selectedEmployees.map((emp) => (
-                    <span
-                      key={emp.id}
-                      className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
-                    >
-                      {emp.name}
-                      <button
-                        className="ml-1 text-red-500"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelect(emp);
-                        }}
+            <div className="relative">
+              {/* Selected employees box */}
+              <div
+                className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white overflow-y-auto max-h-40"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {selectedEmployees.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEmployees.map((emp) => (
+                      <span
+                        key={emp.id}
+                        className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
                       >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
+                        {emp.name}
+                        <button
+                          className="ml-1 text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelect(emp);
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400">Select employees...</span>
+                )}
+              </div>
+
+              {/* Dropdown — absolute inside parent so it stays within white box */}
+              {isOpen && (
+                <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-10">
+                  {employeesList.map((emp) => {
+                    const isSelected = selectedEmployees.some(
+                      (e) => e.id === emp.id
+                    );
+                    return (
+                      <div
+                        key={emp.id}
+                        onClick={() => handleSelect(emp)}
+                        className={`flex justify-between items-center p-2 cursor-pointer ${
+                          isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-gray-800">{emp.name}</span>
+                        {isSelected && (
+                          <span className="text-blue-600 font-bold">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <span className="text-gray-400">Select employees...</span>
               )}
             </div>
 
-            {isOpen && (
-              <div className="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-lg">
-                {employeesList.map((emp) => {
-                  const isSelected = selectedEmployees.some(
-                    (e) => e.id === emp.id
-                  );
-                  return (
-                    <div
-                      key={emp.id}
-                      onClick={() => handleSelect(emp)}
-                      className={`flex justify-between items-center p-2 cursor-pointer ${
-                        isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <span className="text-gray-800">{emp.name}</span>
-                      {isSelected && (
-                        <span className="text-blue-600 font-bold">✓</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <p className="text-sm text-gray-600 mt-2">
-              Selected: {selectedEmployees.length} / 10
-            </p>
-
-            <button
-              onClick={handleDone}
-              className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
-            >
-              Done
-            </button>
+            {/* Button next to dropdown */}
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-sm text-gray-600">
+                Selected: {selectedEmployees.length} / 10
+              </p>
+              <button
+                onClick={handleDone}
+                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
 
