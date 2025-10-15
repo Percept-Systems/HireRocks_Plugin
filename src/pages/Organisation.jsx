@@ -483,7 +483,7 @@ function Organization() {
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Select Employees (max 10)
             </label>
-            <div className="flex items-start gap-3">
+            <div className="flex gap-3">
               <div className="relative">
                 {/* Selected employees box */}
                 <div
