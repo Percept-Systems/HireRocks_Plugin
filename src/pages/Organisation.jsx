@@ -479,7 +479,7 @@ function Organization() {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-          <div className="w-[400px] mx-auto flex gap-3">
+          <div className="w-[400px] mx-auto">
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Select Employees (max 10)
             </label>
