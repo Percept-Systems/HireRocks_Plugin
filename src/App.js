@@ -26,7 +26,7 @@ function App() {
       if (data.status === 200) {
         var signedRequest = data.payload.response;
         var part = signedRequest.split(".")[1];
-        var sr = JSON.parse(Sfdc.canvas.decode(part));
+        var sr = JSON.parse(window.Sfdc.canvas.decode(part));
 
         // Example: Query Salesforce data
         var queryUrl =
