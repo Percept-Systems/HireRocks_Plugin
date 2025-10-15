@@ -21,8 +21,8 @@ function App() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  Sfdc.canvas(function () {
-    Sfdc.canvas.client.refreshSignedRequest(function (data) {
+  window.Sfdc.canvas(function () {
+    window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
       if (data.status === 200) {
         var signedRequest = data.payload.response;
         var part = signedRequest.split(".")[1];
@@ -33,7 +33,7 @@ function App() {
           sr.client.instanceUrl +
           "/services/data/v65.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+10";
 
-        Sfdc.canvas.client.ajax(queryUrl, {
+        window.Sfdc.canvas.client.ajax(queryUrl, {
           client: sr.client,
           method: "GET",
           success: function (data) {
