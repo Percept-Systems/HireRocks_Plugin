@@ -10,6 +10,34 @@ function App() {
   const [SignedRequest, setSignedRequest] = useState(null);
 
   useEffect(() => {
+    window.Sfdc.canvas(function () {
+      console.log("sdk sf init........");
+      window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
+        if (data.status === 200) {
+          console.log("data.... ", data);
+          var signedRequest = data.payload.response;
+          var part = signedRequest.split(".")[1];
+          var sr = JSON.parse(window.Sfdc.canvas.decode(part));
+          console.log("Signed request...", signedRequest);
+
+          // Example: Query Salesforce data
+          var queryUrl =
+            sr.client.instanceUrl +
+            "/services/data/v65.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+10";
+
+          window.Sfdc.canvas.client.ajax(queryUrl, {
+            client: sr.client,
+            method: "GET",
+            success: function (data) {
+              console.log("Accounts:", data.payload.records);
+            },
+            error: function (data) {
+              console.error("Error:", data);
+            },
+          });
+        }
+      });
+    });
     const handleMessage = (event) => {
       if (event.data && event.data.client) {
         console.log("Received signed request:", event.data);
@@ -20,35 +48,6 @@ function App() {
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
-
-  window.Sfdc.canvas(function () {
-    console.log("sdk sf init........");
-    window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
-      if (data.status === 200) {
-        console.log("data.... ", data);
-        var signedRequest = data.payload.response;
-        var part = signedRequest.split(".")[1];
-        var sr = JSON.parse(window.Sfdc.canvas.decode(part));
-        console.log("Signed request...", signedRequest);
-
-        // Example: Query Salesforce data
-        var queryUrl =
-          sr.client.instanceUrl +
-          "/services/data/v65.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+10";
-
-        window.Sfdc.canvas.client.ajax(queryUrl, {
-          client: sr.client,
-          method: "GET",
-          success: function (data) {
-            console.log("Accounts:", data.payload.records);
-          },
-          error: function (data) {
-            console.error("Error:", data);
-          },
-        });
-      }
-    });
-  });
 
   return (
     <Router>
