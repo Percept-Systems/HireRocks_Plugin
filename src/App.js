@@ -21,6 +21,32 @@ function App() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  Sfdc.canvas(function () {
+    Sfdc.canvas.client.refreshSignedRequest(function (data) {
+      if (data.status === 200) {
+        var signedRequest = data.payload.response;
+        var part = signedRequest.split(".")[1];
+        var sr = JSON.parse(Sfdc.canvas.decode(part));
+
+        // Example: Query Salesforce data
+        var queryUrl =
+          sr.client.instanceUrl +
+          "/services/data/v65.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+10";
+
+        Sfdc.canvas.client.ajax(queryUrl, {
+          client: sr.client,
+          method: "GET",
+          success: function (data) {
+            console.log("Accounts:", data.payload.records);
+          },
+          error: function (data) {
+            console.error("Error:", data);
+          },
+        });
+      }
+    });
+  });
+
   return (
     <Router>
       <div className="min-h-screen bg-gradient-to-r from-green-950 to-green-200 p-6 text-white">
