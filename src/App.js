@@ -8,6 +8,7 @@ import OrgProfile from "./pages/OrgProfile";
 
 function App() {
   window.Sfdc.canvas.onReady(function () {
+    console.log("Salesforce sdk init.....");
     // Extract signed request
     const sr = JSON.parse(window.name.split("=")[1]);
     console.log("Signed Request:", sr);
