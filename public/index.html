@@ -23,7 +23,7 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <title>HireRocks-Plugin</title>
-  <script src="https://orgfarm-a31c75654e-dev-ed.develop.my.salesforce.com/canvas/sdk/js/58.0/canvas-all.js"></script>
+  <script src="/canvas/sdk/js/61.0/canvas-all.js"></script>
   <script src="https://canvas.salesforce.com/sdk/js/36.0/canvas-all.js"></script>
 
 
@@ -43,6 +43,57 @@
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
+  <script>
+
+    // Only load Salesforce Canvas SDK if inside Salesforce iframe
+    if (window.self !== window.top) {
+      const sdkScript = document.createElement("script");
+      sdkScript.src = "/canvas/sdk/js/61.0/canvas-all.js"; // No domain prefix
+      sdkScript.onload = () => initSalesforceCanvas();
+      document.head.appendChild(sdkScript);
+    }
+
+    // Only load Salesforce Canvas SDK if inside Salesforce iframe
+    if (window.self !== window.top) {
+      const sdkScript = document.createElement("script");
+      sdkScript.src = "/canvas/sdk/js/61.0/canvas-all.js"; // No domain prefix
+      sdkScript.onload = () => initSalesforceCanvas();
+      document.head.appendChild(sdkScript);
+    }
+
+    function initSalesforceCanvas() {
+      if (window.Sfdc && window.Sfdc.canvas) {
+        window.Sfdc.canvas.onReady(() => {
+          console.log("Salesforce sdk init....");
+          // Parse signed request from window.name
+          const signedRequest = window.name.includes("=")
+            ? JSON.parse(window.name.split("=")[1])
+            : null;
+
+          if (signedRequest && signedRequest.context) {
+            console.log("Canvas Context:", signedRequest.context);
+
+            const { oauthToken, instance_url } = signedRequest.client;
+            const { user, organization } = signedRequest.context;
+
+            console.log("Org ID:", organization.orgId);
+            console.log("User ID:", user.userId);
+
+            // Example: Fetch Salesforce users
+            fetch(`${instance_url}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+5`, {
+              headers: { Authorization: `Bearer ${oauthToken}` },
+            })
+              .then(res => res.json())
+              .then(data => console.log("Salesforce Users:", data))
+              .catch(err => console.error("Fetch error:", err));
+          } else {
+            console.error("No signed request found");
+          }
+        });
+      }
+    }
+
+  </script>
 
 
 </html>
