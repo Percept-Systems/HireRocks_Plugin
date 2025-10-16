@@ -46,7 +46,6 @@
   <script>
 
     // Only load Salesforce Canvas SDK if inside Salesforce iframe
-    // Detect if running inside Salesforce iframe
     const isInsideSalesforce = (() => {
       try {
         return window.self !== window.top && document.referrer.includes('force.com');
@@ -56,63 +55,63 @@
     })();
 
     if (isInsideSalesforce) {
-      // Load Canvas SDK from Salesforce environment
-      const sdkScript = document.createElement('script');
-      sdkScript.src = '/canvas/sdk/js/61.0/canvas-all.js'; // Relative path works for both VF and Lightning
-      sdkScript.onload = () => initSalesforceCanvas();
-      document.head.appendChild(sdkScript);
+      // Load Canvas SDK from Salesforce environment (not from your domain)
+      const sdk = document.createElement('script');
+      sdk.src = '/canvas/sdk/js/61.0/canvas-all.js';
+      sdk.onload = function () {
+        console.log('Salesforce Canvas SDK loaded');
+        if (window.Sfdc && window.Sfdc.canvas) {
+          window.Sfdc.canvas.onReady(() => {
+            console.log('Canvas ready');
+          });
+        }
+      };
+      document.head.appendChild(sdk);
     } else {
       console.log('Running outside Salesforce — skipping Canvas SDK load');
     }
 
-    // Function to initialize Salesforce Canvas and parse signed request
+    // Only load Salesforce Canvas SDK if inside Salesforce iframe
+    if (window.self !== window.top) {
+      const sdkScript = document.createElement("script");
+      sdkScript.src = "/canvas/sdk/js/61.0/canvas-all.js"; // No domain prefix
+      sdkScript.onload = () => initSalesforceCanvas();
+      document.head.appendChild(sdkScript);
+    }
+
     function initSalesforceCanvas() {
       if (window.Sfdc && window.Sfdc.canvas) {
         window.Sfdc.canvas.onReady(() => {
-          console.log('Salesforce SDK ready...');
-
+          console.log("Salesforce sdk init....");
           // Parse signed request from window.name
-          let signedRequest = null;
-          if (window.name && window.name.includes('=')) {
-            console.log("Window.name :", window.name);
-            try {
-              const parts = window.name.split('=');
-              signedRequest = JSON.parse(decodeURIComponent(parts[1]));
-              console.log("parsed Signed Request: ", signedRequest)
-            } catch (err) {
-              console.error('Error parsing signed request:', err);
-            }
-          }
+          const signedRequest = window.name.includes("=")
+            ? JSON.parse(window.name.split("=")[1])
+            : null;
 
           if (signedRequest && signedRequest.context) {
-            const { context, client } = signedRequest;
-            const { user, organization } = context;
-            const { oauthToken, instanceUrl } = client;
+            console.log("Canvas Context:", signedRequest.context);
 
-            console.log('Canvas Context:', context);
-            console.log('Org ID:', organization.orgId);
-            console.log('User ID:', user.userId);
-            console.log('OAuth Token:', oauthToken);
-            console.log('Instance URL:', instanceUrl);
+            const { oauthToken, instance_url } = signedRequest.client;
+            const { user, organization } = signedRequest.context;
 
-            // Example: Fetch first 5 Salesforce users
-            fetch(`${instanceUrl}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+5`, {
+            console.log("Org ID:", organization.orgId);
+            console.log("User ID:", user.userId);
+
+            // Example: Fetch Salesforce users
+            fetch(`${instance_url}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+5`, {
               headers: { Authorization: `Bearer ${oauthToken}` },
             })
               .then(res => res.json())
-              .then(data => console.log('Salesforce Users:', data))
-              .catch(err => console.error('Fetch error:', err));
+              .then(data => console.log("Salesforce Users:", data))
+              .catch(err => console.error("Fetch error:", err));
           } else {
-            console.error('No signed request found in window.name');
+            console.error("No signed request found");
           }
         });
-      } else {
-        console.error('Salesforce Canvas SDK not available');
       }
     }
 
-
-
+    
 
   </script>
 
