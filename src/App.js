@@ -7,47 +7,29 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  const [SignedRequest, setSignedRequest] = useState(null);
+  window.Sfdc.canvas.onReady(function () {
+    // Extract signed request
+    const sr = JSON.parse(window.name.split("=")[1]);
+    console.log("Signed Request:", sr);
 
-  useEffect(() => {
-    window.Sfdc.canvas(function () {
-      console.log("sdk sf init........");
-      window.Sfdc.canvas.client.refreshSignedRequest(function (data) {
-        if (data.status === 200) {
-          console.log("data.... ", data);
-          var signedRequest = data.payload.response;
-          var part = signedRequest.split(".")[1];
-          var sr = JSON.parse(window.Sfdc.canvas.decode(part));
-          console.log("Signed request...", signedRequest);
+    // Extract OAuth token & instance URL
+    const { client, context } = sr;
+    const { instance_url, oauthToken } = client;
+    const { user, organization } = context;
 
-          // Example: Query Salesforce data
-          var queryUrl =
-            sr.client.instanceUrl +
-            "/services/data/v65.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+10";
+    console.log("Org ID:", organization.orgId);
+    console.log("User ID:", user.userId);
 
-          window.Sfdc.canvas.client.ajax(queryUrl, {
-            client: sr.client,
-            method: "GET",
-            success: function (data) {
-              console.log("Accounts:", data.payload.records);
-            },
-            error: function (data) {
-              console.error("Error:", data);
-            },
-          });
-        }
-      });
-    });
-    const handleMessage = (event) => {
-      if (event.data && event.data.client) {
-        console.log("Received signed request:", event.data);
-        setSignedRequest(event.data);
+    // Example: Fetch Salesforce users
+    fetch(
+      `${instance_url}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+10`,
+      {
+        headers: { Authorization: `Bearer ${oauthToken}` },
       }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
+    )
+      .then((r) => r.json())
+      .then((data) => console.log(data));
+  });
 
   return (
     <Router>
