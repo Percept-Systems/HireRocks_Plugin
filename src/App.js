@@ -7,30 +7,32 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import OrgProfile from "./pages/OrgProfile";
 
 function App() {
-  window.Sfdc.canvas.onReady(function () {
-    console.log("Salesforce sdk init.....");
-    // Extract signed request
-    const sr = JSON.parse(window.name.split("=")[1]);
-    console.log("Signed Request:", sr);
+  useEffect(() => {
+    window.Sfdc.canvas.onReady(function () {
+      console.log("Salesforce sdk init.....");
+      // Extract signed request
+      const sr = JSON.parse(window.name.split("=")[1]);
+      console.log("Signed Request:", sr);
 
-    // Extract OAuth token & instance URL
-    const { client, context } = sr;
-    const { instance_url, oauthToken } = client;
-    const { user, organization } = context;
+      // Extract OAuth token & instance URL
+      const { client, context } = sr;
+      const { instance_url, oauthToken } = client;
+      const { user, organization } = context;
 
-    console.log("Org ID:", organization.orgId);
-    console.log("User ID:", user.userId);
+      console.log("Org ID:", organization.orgId);
+      console.log("User ID:", user.userId);
 
-    // Example: Fetch Salesforce users
-    fetch(
-      `${instance_url}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+10`,
-      {
-        headers: { Authorization: `Bearer ${oauthToken}` },
-      }
-    )
-      .then((r) => r.json())
-      .then((data) => console.log(data));
-  });
+      // Example: Fetch Salesforce users
+      fetch(
+        `${instance_url}/services/data/v61.0/query?q=SELECT+Id,Name+FROM+User+LIMIT+10`,
+        {
+          headers: { Authorization: `Bearer ${oauthToken}` },
+        }
+      )
+        .then((r) => r.json())
+        .then((data) => console.log(data));
+    });
+  }, []);
 
   return (
     <Router>
