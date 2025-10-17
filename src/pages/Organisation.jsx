@@ -58,7 +58,7 @@ function Organization() {
         return;
       }
       const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-        UserName: organizationName,
+        UserName: organizationName, 
         Password: organizationPass,
       });
 
@@ -90,7 +90,7 @@ function Organization() {
 
       // Fetch Leads from Zoho CRM
       window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads", // can change to "users" or "Contacts" if needed
+        Entity: "Tasks", // can change to "users" or "Contacts" if needed
         per_page: 15,
         page: 1,
         sort_order: "desc",
