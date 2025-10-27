@@ -48,6 +48,28 @@ function Organization() {
     setPlatform(detectedPlatform);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get("accessToken");
+    if (tokenFromUrl && platform === "salesforce") {
+      console.log("Found access token from Salesforce redirect:", tokenFromUrl);
+      localStorage.setItem("sf_access_token", tokenFromUrl);
+      fetchSalesforceUsers(tokenFromUrl);
+    }
+  }, [platform]);
+
+  // Salesforce Oauth flow
+  const loginToSalesforce = () => {
+    const clientId =
+      "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
+    const redirectUri = "http://localhost:50283/api/tracker/saleforce/callback";
+    const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
+    const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}`;
+    window.location.href = authUrl;
+  };
+
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
@@ -58,7 +80,7 @@ function Organization() {
         return;
       }
       const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-        UserName: organizationName, 
+        UserName: organizationName,
         Password: organizationPass,
       });
 
@@ -88,25 +110,35 @@ function Organization() {
     window.ZOHO.embeddedApp.on("PageLoad", function (data) {
       console.log("PageLoad event data:", data);
 
-      // Fetch Leads from Zoho CRM
+      // ✅ Fetch all Zoho CRM users
+      window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+        .then(function (response) {
+          console.log("Fetched Users:", response.users);
+          if (response.users && Array.isArray(response.users)) {
+            const transformedUsers = response.users.map((u) => ({
+              id: u.id,
+              name: u.full_name,
+              email: u.email,
+              role: u.role ? u.role.name : "N/A",
+              profile: u.profile ? u.profile.name : "N/A",
+              status: u.status,
+            }));
+            setEmployeesList(transformedUsers);
+          }
+        })
+        .catch(function (error) {
+          console.error("Failed to fetch users:", error);
+        });
+
+      // Example: Fetch leads if needed
       window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Tasks", // can change to "users" or "Contacts" if needed
+        Entity: "Leads",
         per_page: 15,
         page: 1,
         sort_order: "desc",
       })
         .then(function (response) {
-          console.log("Fetched Leads data:", response.data);
-          if (response.data && Array.isArray(response.data)) {
-            const transformedLeads = response.data.map((lead) => ({
-              id: lead.id,
-              name: lead.Full_Name || lead.Last_Name || "Unnamed Lead",
-              email: lead.Email || "",
-              company: lead.Company || "",
-              phone: lead.Phone || "",
-            }));
-            setEmployeesList(transformedLeads);
-          }
+          console.log("Fetched Leads:", response.data);
         })
         .catch(function (error) {
           console.error("Failed to fetch Leads:", error);
@@ -132,6 +164,66 @@ function Organization() {
     setStep(1);
   };
 
+  // const verifyOTP = async () => {
+  //   if (!mailContent) {
+  //     alert("Please enter the OTP.");
+  //     return;
+  //   }
+  //   setotpError(false);
+  //   setLoading(true);
+  //   try {
+  //     // Step 1: Verify OTP
+  //     const response = await axios.get(
+  //       `${APP_URI}/api/Account/VerifyEmailAddress`,
+  //       {
+  //         params: { emailVerificationCode: mailContent },
+  //       }
+  //     );
+
+  //     if (
+  //       response.data?.SuccessMessage ===
+  //       "You email address is verified successfully"
+  //     ) {
+  //       alert(response.data.SuccessMessage); // Success message
+
+  //       await new Promise((resolve) => setTimeout(resolve, 2000));
+  //       // Extract username from email (before '@')
+  //       const username = email.split("@")[0];
+
+  //       // Step 2: Log in the user
+  //       const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
+  //         UserName: username,
+  //         Password: organizationPass, // Using the password user entered
+  //         RememberMe: true,
+  //       });
+
+  //       let loginData = loginResponse.data;
+  //       if (typeof loginData === "string") {
+  //         loginData = JSON.parse(loginData);
+  //       }
+
+  //       if (loginData.access_token) {
+  //         console.log("Access Token:", loginData.access_token);
+  //         localStorage.setItem("access_token", loginData.access_token);
+  //         alert("Login successful!");
+  //         setStep(3); // Move to next step (employee addition)
+  //         setLoading(false);
+  //       } else {
+  //         setLoading(false);
+  //         alert("Login failed. Please try again.");
+  //       }
+  //     } else {
+  //       setLoading(false);
+  //       setotpError(true);
+  //       alert("Invalid OTP. Please try again.");
+  //     }
+  //   } catch (error) {
+  //     setLoading(false);
+  //     console.error("Error:", error);
+  //     alert("Something went wrong. Please try again.");
+  //   }
+  // };
+
   const verifyOTP = async () => {
     if (!mailContent) {
       alert("Please enter the OTP.");
@@ -140,7 +232,6 @@ function Organization() {
     setotpError(false);
     setLoading(true);
     try {
-      // Step 1: Verify OTP
       const response = await axios.get(
         `${APP_URI}/api/Account/VerifyEmailAddress`,
         {
@@ -152,16 +243,14 @@ function Organization() {
         response.data?.SuccessMessage ===
         "You email address is verified successfully"
       ) {
-        alert(response.data.SuccessMessage); // Success message
+        alert(response.data.SuccessMessage);
 
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        // Extract username from email (before '@')
-        const username = email.split("@")[0];
 
-        // Step 2: Log in the user
+        const username = email.split("@")[0];
         const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
           UserName: username,
-          Password: organizationPass, // Using the password user entered
+          Password: organizationPass,
           RememberMe: true,
         });
 
@@ -171,11 +260,16 @@ function Organization() {
         }
 
         if (loginData.access_token) {
-          console.log("Access Token:", loginData.access_token);
           localStorage.setItem("access_token", loginData.access_token);
           alert("Login successful!");
-          setStep(3); // Move to next step (employee addition)
+          setStep(3);
           setLoading(false);
+
+          // 🚀 Trigger Salesforce OAuth only if platform is Salesforce
+          if (platform === "salesforce") {
+            console.log("Platform is Salesforce — starting OAuth flow...");
+            loginToSalesforce();
+          }
         } else {
           setLoading(false);
           alert("Login failed. Please try again.");
@@ -187,8 +281,43 @@ function Organization() {
       }
     } catch (error) {
       setLoading(false);
-      console.error("Error:", error);
+      console.error("Error verifying OTP:", error);
       alert("Something went wrong. Please try again.");
+    }
+  };
+
+  // 🔹 Function to fetch Salesforce users
+  const fetchSalesforceUsers = async (accessToken) => {
+    if (!accessToken) {
+      console.error("❌ No access token provided to fetch Salesforce users.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("Fetching Salesforce users with access token:", accessToken);
+
+      const response = await axios.get(
+        `http://72.167.143.107:444/api/tracker/saleforce/users`,
+        {
+          params: { accessToken },
+        }
+      );
+
+      // Expect response.data to be an array of users
+      if (response.status === 200 && response.data) {
+        console.log("✅ Salesforce users fetched successfully:", response.data);
+
+        // Save to employeesList (replace Zoho leads)
+        setEmployeesList(response.data);
+      } else {
+        console.warn("⚠️ Unexpected response while fetching users:", response);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching Salesforce users:", error);
+      alert("Failed to fetch Salesforce users. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
