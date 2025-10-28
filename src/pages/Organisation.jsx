@@ -67,11 +67,8 @@ function Organization() {
     const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}`;
-  
-    // ✅ Open login in a new tab/window
-    window.open(authUrl, "_blank", "width=600,height=700");
+    window.location.href = authUrl;
   };
-  
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
