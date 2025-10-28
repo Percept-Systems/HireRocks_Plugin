@@ -60,6 +60,7 @@ function Organization() {
 
   // Salesforce Oauth flow
   const loginToSalesforce = () => {
+    console.log("In Login Salesforce function...");
     const clientId =
       "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
     const redirectUri = "http://localhost:50283/api/tracker/saleforce/callback";
