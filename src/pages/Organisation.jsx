@@ -63,7 +63,8 @@ function Organization() {
     console.log("In Login Salesforce function...");
     const clientId =
       "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
-    const redirectUri = "http://localhost:50283/api/tracker/saleforce/callback";
+    const redirectUri =
+      "https://trackerapi.hirerocks.com/api/tracker/saleforce/callback";
     const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
     const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
@@ -166,66 +167,6 @@ function Organization() {
     setCreateMode(true);
     setStep(1);
   };
-
-  // const verifyOTP = async () => {
-  //   if (!mailContent) {
-  //     alert("Please enter the OTP.");
-  //     return;
-  //   }
-  //   setotpError(false);
-  //   setLoading(true);
-  //   try {
-  //     // Step 1: Verify OTP
-  //     const response = await axios.get(
-  //       `${APP_URI}/api/Account/VerifyEmailAddress`,
-  //       {
-  //         params: { emailVerificationCode: mailContent },
-  //       }
-  //     );
-
-  //     if (
-  //       response.data?.SuccessMessage ===
-  //       "You email address is verified successfully"
-  //     ) {
-  //       alert(response.data.SuccessMessage); // Success message
-
-  //       await new Promise((resolve) => setTimeout(resolve, 2000));
-  //       // Extract username from email (before '@')
-  //       const username = email.split("@")[0];
-
-  //       // Step 2: Log in the user
-  //       const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-  //         UserName: username,
-  //         Password: organizationPass, // Using the password user entered
-  //         RememberMe: true,
-  //       });
-
-  //       let loginData = loginResponse.data;
-  //       if (typeof loginData === "string") {
-  //         loginData = JSON.parse(loginData);
-  //       }
-
-  //       if (loginData.access_token) {
-  //         console.log("Access Token:", loginData.access_token);
-  //         localStorage.setItem("access_token", loginData.access_token);
-  //         alert("Login successful!");
-  //         setStep(3); // Move to next step (employee addition)
-  //         setLoading(false);
-  //       } else {
-  //         setLoading(false);
-  //         alert("Login failed. Please try again.");
-  //       }
-  //     } else {
-  //       setLoading(false);
-  //       setotpError(true);
-  //       alert("Invalid OTP. Please try again.");
-  //     }
-  //   } catch (error) {
-  //     setLoading(false);
-  //     console.error("Error:", error);
-  //     alert("Something went wrong. Please try again.");
-  //   }
-  // };
 
   const verifyOTP = async () => {
     if (!mailContent) {
