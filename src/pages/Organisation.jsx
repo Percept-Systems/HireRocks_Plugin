@@ -59,7 +59,8 @@ function Organization() {
   }, [platform]);
 
   // Salesforce Oauth flow
-  function loginToSalesforce() {
+  const loginToSalesforce = () => {
+    console.log("In Login Salesforce function...");
     const clientId =
       "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
     const redirectUri =
@@ -68,8 +69,10 @@ function Organization() {
     const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}`;
-    window.location.href = authUrl;
-  }
+
+    // ✅ Open login in a new tab/window
+    window.open(authUrl, "_blank", "width=600,height=700");
+  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
