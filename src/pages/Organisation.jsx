@@ -50,10 +50,8 @@ function Organization() {
 
   useEffect(() => {
     if (platform === "salesforce") {
-      console.log("🌀 Inside Salesforce — starting OAuth automatically...");
+      console.log("⚙️ Platform is Salesforce — loading Salesforce users...");
       const accessToken = localStorage.getItem("sf_access_token");
-
-      // Only trigger OAuth if no valid token exists
       if (!accessToken) {
         loginToSalesforce();
       } else {
@@ -80,6 +78,47 @@ function Organization() {
       window.history.replaceState({}, document.title, cleanUrl);
     }
   }, [platform]);
+
+  // zoho sdk setup to fetch users
+
+  if (platform === "zoho") {
+    console.log("📦 Loading Zoho users...");
+    if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
+      window.ZOHO.embeddedApp.on("PageLoad", function (data) {
+        console.log("Zoho PageLoad event data:", data);
+
+        window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+          .then((response) => {
+            console.log("Fetched Zoho Users:", response.users);
+            if (response.users && Array.isArray(response.users)) {
+              const transformedUsers = response.users.map((u) => ({
+                id: u.id,
+                name: u.full_name,
+                email: u.email,
+                role: u.role ? u.role.name : "N/A",
+                profile: u.profile ? u.profile.name : "N/A",
+                status: u.status,
+              }));
+              setEmployeesList(transformedUsers);
+            }
+          })
+          .catch((error) =>
+            console.error("Failed to fetch Zoho users:", error)
+          );
+
+        Promise.all([
+          window.ZOHO.CRM.CONFIG.getCurrentUser(),
+          window.ZOHO.CRM.CONFIG.getOrgInfo(),
+        ])
+          .then(([user, org]) => setZohoInfo({ user, org }))
+          .catch((err) => console.error("Error fetching Zoho info:", err));
+      });
+
+      window.ZOHO.embeddedApp.init();
+    } else {
+      console.warn("ZOHO SDK not loaded yet.");
+    }
+  }
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
@@ -131,60 +170,6 @@ function Organization() {
       setLoading(false);
     }
   };
-
-  // zoho sdk setup and fetch data method
-
-  if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-    window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-      console.log("PageLoad event data:", data);
-
-      // ✅ Fetch all Zoho CRM users
-      window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
-        .then(function (response) {
-          console.log("Fetched Users:", response.users);
-          if (response.users && Array.isArray(response.users)) {
-            const transformedUsers = response.users.map((u) => ({
-              id: u.id,
-              name: u.full_name,
-              email: u.email,
-              role: u.role ? u.role.name : "N/A",
-              profile: u.profile ? u.profile.name : "N/A",
-              status: u.status,
-            }));
-            setEmployeesList(transformedUsers);
-          }
-        })
-        .catch(function (error) {
-          console.error("Failed to fetch users:", error);
-        });
-
-      // Example: Fetch leads if needed
-      window.ZOHO.CRM.API.getAllRecords({
-        Entity: "Leads",
-        per_page: 15,
-        page: 1,
-        sort_order: "desc",
-      })
-        .then(function (response) {
-          console.log("Fetched Leads:", response.data);
-        })
-        .catch(function (error) {
-          console.error("Failed to fetch Leads:", error);
-        });
-
-      // Fetch current user/org info
-      Promise.all([
-        window.ZOHO.CRM.CONFIG.getCurrentUser(),
-        window.ZOHO.CRM.CONFIG.getOrgInfo(),
-      ])
-        .then(([user, org]) => setZohoInfo({ user, org }))
-        .catch((err) => console.error("Error fetching Zoho info:", err));
-    });
-
-    window.ZOHO.embeddedApp.init();
-  } else {
-    console.warn("ZOHO SDK not loaded yet.");
-  }
 
   // Handle Create Organization Mode Activation
   const handleCreateOrganization = () => {
@@ -609,25 +594,35 @@ function Organization() {
               {/* Dropdown — absolute inside parent so it stays within white box */}
               {isOpen && (
                 <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-10">
-                  {employeesList.map((emp) => {
-                    const isSelected = selectedEmployees.some(
-                      (e) => e.id === emp.id
-                    );
-                    return (
-                      <div
-                        key={emp.id}
-                        onClick={() => handleSelect(emp)}
-                        className={`flex justify-between items-center p-2 cursor-pointer ${
-                          isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-gray-800">{emp.name}</span>
-                        {isSelected && (
-                          <span className="text-blue-600 font-bold">✓</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {employeesList.length === 0 ? (
+                    <div className="p-2 text-gray-500 italic">
+                      {platform === "zoho"
+                        ? "No Zoho users found."
+                        : platform === "salesforce"
+                        ? "No Salesforce users found."
+                        : "No users to display."}
+                    </div>
+                  ) : (
+                    employeesList.map((emp) => {
+                      const isSelected = selectedEmployees.some(
+                        (e) => e.id === emp.id
+                      );
+                      return (
+                        <div
+                          key={emp.id}
+                          onClick={() => handleSelect(emp)}
+                          className={`flex justify-between items-center p-2 cursor-pointer ${
+                            isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <span className="text-gray-800">{emp.name}</span>
+                          {isSelected && (
+                            <span className="text-blue-600 font-bold">✓</span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>
