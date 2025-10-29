@@ -49,6 +49,21 @@ function Organization() {
   }, []);
 
   useEffect(() => {
+    if (platform === "salesforce") {
+      console.log("🌀 Inside Salesforce — starting OAuth automatically...");
+      const accessToken = localStorage.getItem("sf_access_token");
+
+      // Only trigger OAuth if no valid token exists
+      if (!accessToken) {
+        loginToSalesforce();
+      } else {
+        console.log("🔑 Found existing Salesforce token, fetching users...");
+        fetchSalesforceUsers(accessToken);
+      }
+    }
+  }, [platform]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get("accessToken");
 
@@ -217,12 +232,6 @@ function Organization() {
           alert("Login successful!");
           setStep(3);
           setLoading(false);
-
-          // 🚀 Trigger Salesforce OAuth only if platform is Salesforce
-          if (platform === "salesforce") {
-            console.log("Platform is Salesforce — starting OAuth flow...");
-            loginToSalesforce();
-          }
         } else {
           setLoading(false);
           alert("Login failed. Please try again.");
