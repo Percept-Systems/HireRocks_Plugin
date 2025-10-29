@@ -79,7 +79,8 @@ function Organization() {
     )}&scope=api%20refresh_token`;
 
     // open in the same tab — Salesforce will redirect back through backend → frontend
-    window.open(authUrl, "_blank", "width=600,height=700");
+    // window.open(authUrl, "_blank", "width=600,height=700");
+    window.location.href = authUrl;
   };
 
   // Handle View Click (Step 1 for Viewing Organization)
