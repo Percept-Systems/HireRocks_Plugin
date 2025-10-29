@@ -609,35 +609,25 @@ function Organization() {
               {/* Dropdown — absolute inside parent so it stays within white box */}
               {isOpen && (
                 <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-10">
-                  {employeesList.length === 0 ? (
-                    <div className="p-2 text-gray-500 italic">
-                      {platform === "zoho"
-                        ? "No Zoho users found."
-                        : platform === "salesforce"
-                        ? "No Salesforce users found."
-                        : "No users to display."}
-                    </div>
-                  ) : (
-                    employeesList.map((emp) => {
-                      const isSelected = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                      );
-                      return (
-                        <div
-                          key={emp.id}
-                          onClick={() => handleSelect(emp)}
-                          className={`flex justify-between items-center p-2 cursor-pointer ${
-                            isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="text-gray-800">{emp.name}</span>
-                          {isSelected && (
-                            <span className="text-blue-600 font-bold">✓</span>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
+                  {employeesList.map((emp) => {
+                    const isSelected = selectedEmployees.some(
+                      (e) => e.id === emp.id
+                    );
+                    return (
+                      <div
+                        key={emp.id}
+                        onClick={() => handleSelect(emp)}
+                        className={`flex justify-between items-center p-2 cursor-pointer ${
+                          isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-gray-800">{emp.name}</span>
+                        {isSelected && (
+                          <span className="text-blue-600 font-bold">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
