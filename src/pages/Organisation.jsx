@@ -51,16 +51,24 @@ function Organization() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get("accessToken");
+
     if (tokenFromUrl && platform === "salesforce") {
-      console.log("Found access token from Salesforce redirect:", tokenFromUrl);
+      console.log(
+        "✅ Found access token from Salesforce redirect:",
+        tokenFromUrl
+      );
       localStorage.setItem("sf_access_token", tokenFromUrl);
       fetchSalesforceUsers(tokenFromUrl);
+
+      // Clean up the URL for UX (remove token)
+      const cleanUrl = `${window.location.origin}/?platform=salesforce`;
+      window.history.replaceState({}, document.title, cleanUrl);
     }
   }, [platform]);
 
-  // Salesforce Oauth flow
+  // Salesforce OAuth flow
   const loginToSalesforce = () => {
-    console.log("In Login Salesforce function...");
+    console.log("🚀 Starting Salesforce OAuth...");
     const clientId =
       "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
     const redirectUri =
@@ -68,10 +76,10 @@ function Organization() {
     const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
     const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}`;
+    )}&scope=api%20refresh_token`;
 
-    // ✅ Open login in a new tab/window
-    window.open(authUrl, "_blank", "width=600,height=700");
+    // open in the same tab — Salesforce will redirect back through backend → frontend
+    window.location.href = authUrl;
   };
 
   // Handle View Click (Step 1 for Viewing Organization)
