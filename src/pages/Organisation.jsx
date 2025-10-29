@@ -50,12 +50,12 @@ function Organization() {
 
   useEffect(() => {
     if (platform === "salesforce") {
-      console.log("⚙️ Platform is Salesforce — loading Salesforce users...");
+      console.log("Platform is Salesforce — loading Salesforce users...");
       const accessToken = localStorage.getItem("sf_access_token");
       if (!accessToken) {
         loginToSalesforce();
       } else {
-        console.log("🔑 Found existing Salesforce token, fetching users...");
+        console.log("Found existing Salesforce token, fetching users...");
         fetchSalesforceUsers(accessToken);
       }
     }
@@ -67,15 +67,12 @@ function Organization() {
 
     if (tokenFromUrl && platform === "salesforce") {
       console.log(
-        "✅ Found access token from Salesforce redirect:",
+        "Found access token from Salesforce redirect:",
         tokenFromUrl
       );
       localStorage.setItem("sf_access_token", tokenFromUrl);
       fetchSalesforceUsers(tokenFromUrl);
 
-      // Clean up the URL for UX (remove token)
-      const cleanUrl = `${window.location.origin}/?platform=salesforce`;
-      window.history.replaceState({}, document.title, cleanUrl);
     }
   }, [platform]);
 
@@ -122,7 +119,7 @@ function Organization() {
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
-    console.log("🚀 Starting Salesforce OAuth...");
+    console.log("Starting Salesforce OAuth...");
     const clientId =
       "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
     const redirectUri =
@@ -236,7 +233,7 @@ function Organization() {
   // 🔹 Function to fetch Salesforce users
   const fetchSalesforceUsers = async (accessToken) => {
     if (!accessToken) {
-      console.error("❌ No access token provided to fetch Salesforce users.");
+      console.error("No access token provided to fetch Salesforce users.");
       return;
     }
 
@@ -253,7 +250,7 @@ function Organization() {
 
       // Expect response.data to be an array of users
       if (response.status === 200 && response.data) {
-        console.log("✅ Salesforce users fetched successfully:", response.data);
+        console.log("Salesforce users fetched successfully:", response.data);
 
         // Save to employeesList (replace Zoho leads)
         setEmployeesList(response.data);
@@ -261,7 +258,7 @@ function Organization() {
         console.warn("⚠️ Unexpected response while fetching users:", response);
       }
     } catch (error) {
-      console.error("❌ Error fetching Salesforce users:", error);
+      console.error("Error fetching Salesforce users:", error);
       alert("Failed to fetch Salesforce users. Please try again.");
     } finally {
       setLoading(false);
