@@ -66,13 +66,9 @@ function Organization() {
     const tokenFromUrl = params.get("accessToken");
 
     if (tokenFromUrl && platform === "salesforce") {
-      console.log(
-        "Found access token from Salesforce redirect:",
-        tokenFromUrl
-      );
+      console.log("Found access token from Salesforce redirect:", tokenFromUrl);
       localStorage.setItem("sf_access_token", tokenFromUrl);
       fetchSalesforceUsers(tokenFromUrl);
-
     }
   }, [platform]);
 
@@ -252,8 +248,15 @@ function Organization() {
       if (response.status === 200 && response.data) {
         console.log("Salesforce users fetched successfully:", response.data);
 
-        // Save to employeesList (replace Zoho leads)
-        setEmployeesList(response.data);
+        // Extract names only
+        const users = Array.isArray(response.data.records)
+          ? response.data.records.map((u) => ({
+              id: u.Id,
+              name: u.Name,
+            }))
+          : [];
+
+        setEmployeesList(users);
       } else {
         console.warn("⚠️ Unexpected response while fetching users:", response);
       }
