@@ -238,7 +238,7 @@ function Organization() {
       console.log("Fetching Salesforce users with access token:", accessToken);
 
       const response = await axios.get(
-        `${APP_URI}/api/tracker/saleforce/users`,
+        `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
         {
           params: { accessToken },
         }
