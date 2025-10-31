@@ -121,9 +121,11 @@ function Organization() {
     const redirectUri =
       "https://trackerapi.hirerocks.com/api/tracker/saleforce/callback";
     const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
+    const state = Math.random().toString(36).substring(2);
+
     const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&scope=api%20refresh_token`;
+    )}&scope=api%20refresh_token%20offline_access&prompt=login%20consent&state=${state}`;
 
     // open in the same tab — Salesforce will redirect back through backend → frontend
     // window.open(authUrl, "_blank", "width=600,height=700");
@@ -238,7 +240,7 @@ function Organization() {
       console.log("Fetching Salesforce users with access token:", accessToken);
 
       const response = await axios.get(
-        `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
+        `${APP_URI}/api/tracker/saleforce/users`,
         {
           params: { accessToken },
         }
