@@ -96,7 +96,7 @@ function Tracker() {
       };
 
       const response = await axios.post(
-        `${APP_URI}/api/Account/AddWorker`,
+        `${APP_URI}/api/tracker/Account/AddWorker`,
         data,
         config
       );

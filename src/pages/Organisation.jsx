@@ -138,10 +138,13 @@ function Organization() {
         setErrors({ organizationError: "Please Fill all the fields!" });
         return;
       }
-      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-        UserName: organizationName,
-        Password: organizationPass,
-      });
+      const loginResponse = await axios.post(
+        `${APP_URI}/api/tracker/Account/Login`,
+        {
+          UserName: organizationName,
+          Password: organizationPass,
+        }
+      );
 
       let loginData = loginResponse.data;
       if (typeof loginData === "string") {
@@ -178,7 +181,7 @@ function Organization() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${APP_URI}/api/Account/VerifyEmailAddress`,
+        `${APP_URI}/api/tracker/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
@@ -193,11 +196,14 @@ function Organization() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const username = email.split("@")[0];
-        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-          UserName: username,
-          Password: organizationPass,
-          RememberMe: true,
-        });
+        const loginResponse = await axios.post(
+          `${APP_URI}/api/tracker/Account/Login`,
+          {
+            UserName: username,
+            Password: organizationPass,
+            RememberMe: true,
+          }
+        );
 
         let loginData = loginResponse.data;
         if (typeof loginData === "string") {
@@ -360,7 +366,7 @@ function Organization() {
       try {
         // Send API request to add employee
         const response = await axios.post(
-          `${APP_URI}/api/Account/AddWorker`,
+          `${APP_URI}/api/tracker/Account/AddWorker`,
           newEmployee,
           {
             headers: {
