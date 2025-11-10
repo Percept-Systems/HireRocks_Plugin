@@ -406,7 +406,7 @@ function Organization() {
     <div className="min-h-screen bg-gradient-to-r from-green-950  to-green-200  text-white flex items-center justify-center">
       <div className="bg-white relative tempo text-black p-8 rounded-lg w-[85%] h-[90vh] shadow-lg ">
         {/* <h2 className="absolute ml-[40%] text-center text-[40px] text-green-700">HireRocks</h2> */}
-        
+
         {/* Step 1: Organization Input for Viewing */}
         {step === 1 && !createMode && (
           <div className="flex justify-center items-center w-full h-full">
@@ -511,7 +511,7 @@ function Organization() {
                   placeholder="Enter Your Password"
                 />
                 {errors.organizationPass && (
-                  <p className="text-red-500 text-sm">  
+                  <p className="text-red-500 text-sm">
                     {errors.organizationPass}
                   </p>
                 )}
@@ -572,7 +572,7 @@ function Organization() {
                       <span
                         key={emp.id}
                         className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
-                      >   
+                      >
                         {emp.name}
                         <button
                           className="ml-1 text-red-500"
