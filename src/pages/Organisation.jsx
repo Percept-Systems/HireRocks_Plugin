@@ -125,7 +125,6 @@ function Organization() {
       redirectUri
     )}&scope=api%20refresh_token`;
 
-    // open in the same tab — Salesforce will redirect back through backend → frontend
     // window.open(authUrl, "_blank", "width=600,height=700");
     window.location.href = authUrl;
   };
@@ -407,6 +406,7 @@ function Organization() {
     <div className="min-h-screen bg-gradient-to-r from-green-950  to-green-200  text-white flex items-center justify-center">
       <div className="bg-white relative tempo text-black p-8 rounded-lg w-[85%] h-[90vh] shadow-lg ">
         {/* <h2 className="absolute ml-[40%] text-center text-[40px] text-green-700">HireRocks</h2> */}
+
         {/* Step 1: Organization Input for Viewing */}
         {step === 1 && !createMode && (
           <div className="flex justify-center items-center w-full h-full">
