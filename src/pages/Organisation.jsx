@@ -305,13 +305,16 @@ function Organization() {
       setLoading(true);
       setorgError(false);
       try {
-        const response = await axios.post(`${APP_URI}/PostOrganization`, {
-          Email: email,
-          Password: organizationPass,
-          OrganizationTitle: organizationName,
-          IsRegisterationSuccessFull: true,
-          Platform: platform,
-        });
+        const response = await axios.post(
+          `http://api.hirerocks.com/PostOrganization`,
+          {
+            Email: email,
+            Password: organizationPass,
+            OrganizationTitle: organizationName,
+            IsRegisterationSuccessFull: true,
+            Platform: platform,
+          }
+        );
         console.log(response);
         if (response.status == 200) {
           alert(
