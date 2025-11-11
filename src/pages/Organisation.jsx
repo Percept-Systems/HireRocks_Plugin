@@ -306,7 +306,7 @@ function Organization() {
       setorgError(false);
       try {
         const response = await axios.post(
-          `https://api.hirerocks.com/Organization/PostOrganization`,
+          `https://api.hirerocks.com/PostOrganization`,
           {
             Email: email,
             Password: organizationPass,
