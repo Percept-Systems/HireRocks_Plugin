@@ -178,7 +178,7 @@ function Organization() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${APP_URI}/api/tracker/Account/VerifyEmailAddress`,
+        `${APP_URI}/api/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
