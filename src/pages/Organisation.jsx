@@ -138,7 +138,7 @@ function Organization() {
         setErrors({ organizationError: "Please Fill all the fields!" });
         return;
       }
-      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
+      const loginResponse = await axios.post(`${APP_URI}/api/tracker/Account/Login`, {
         UserName: organizationName,
         Password: organizationPass,
       });
@@ -178,7 +178,7 @@ function Organization() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${APP_URI}/api/Account/VerifyEmailAddress`,
+        `${APP_URI}/api/tracker/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
