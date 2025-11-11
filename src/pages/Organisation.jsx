@@ -138,13 +138,10 @@ function Organization() {
         setErrors({ organizationError: "Please Fill all the fields!" });
         return;
       }
-      const loginResponse = await axios.post(
-        `${APP_URI}/api/tracker/Account/Login`,
-        {
-          UserName: organizationName,
-          Password: organizationPass,
-        }
-      );
+      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
+        UserName: organizationName,
+        Password: organizationPass,
+      });
 
       let loginData = loginResponse.data;
       if (typeof loginData === "string") {
@@ -181,7 +178,7 @@ function Organization() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${APP_URI}/api/tracker/Account/VerifyEmailAddress`,
+        `${APP_URI}/api/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
