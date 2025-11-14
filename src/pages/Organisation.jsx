@@ -86,7 +86,7 @@ function Organization() {
             if (response.users && Array.isArray(response.users)) {
               const transformedUsers = response.users.map((u) => ({
                 id: u.id,
-                name: u.full_name,
+                name: u.email,
                 email: u.email,
                 role: u.role ? u.role.name : "N/A",
                 profile: u.profile ? u.profile.name : "N/A",
