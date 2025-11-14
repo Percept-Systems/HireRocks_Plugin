@@ -257,7 +257,7 @@ function Organization() {
         const users = Array.isArray(response.data.records)
           ? response.data.records.map((u) => ({
               id: u.Id,
-              name: u.Name,
+              email: u.Email,
             }))
           : [];
 
