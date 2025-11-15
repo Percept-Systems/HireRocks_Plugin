@@ -16,8 +16,8 @@ function Organization() {
   const [FirstName, setFirstName] = useState("");
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
-  const [errors, setErrors] = useState({}); // State to store validation errors
-  const [error, setError] = useState({}); // State to store validation errors
+  const [errors, setErrors] = useState({});
+  const [error, setError] = useState({});
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
@@ -365,12 +365,12 @@ function Organization() {
   //     setLoading(true);
   //     console.log("Fetching Salesforce users with access token:", accessToken);
 
-  //     const response = await axios.get(
-  //       `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
-  //       {
-  //         params: { accessToken },
-  //       }
-  //     );
+  // const response = await axios.get(
+  //   `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
+  //   {
+  //     params: { accessToken },
+  //   }
+  // );
 
   //     // Expect response.data to be an array of users
   //     if (response.status === 200 && response.data) {
@@ -413,9 +413,7 @@ function Organization() {
       const response = await axios.get(
         `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
         {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          params: { accessToken },
         }
       );
 
