@@ -29,102 +29,225 @@ function Organization() {
 
   const APP_URI = process.env.REACT_APP_API_URL;
 
+  // 1️ Detect platform once
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    let detectedPlatform = params.get("platform");
+    let detected = params.get("platform");
 
-    if (!detectedPlatform) {
+    if (!detected) {
       const ref = document.referrer || "";
       if (ref.includes("force.com") || ref.includes("salesforce.com")) {
-        detectedPlatform = "salesforce";
+        detected = "salesforce";
       } else if (ref.includes("zoho.com") || ref.includes("zoho")) {
-        detectedPlatform = "zoho";
+        detected = "zoho";
       } else {
-        detectedPlatform = "unknown";
+        detected = "unknown";
       }
     }
 
-    console.log("Detected platform:", detectedPlatform);
-    setPlatform(detectedPlatform);
+    console.log("Detected platform:", detected);
+    setPlatform(detected);
   }, []);
 
-  useEffect(() => {
-    if (platform === "salesforce") {
-      console.log("Platform is Salesforce — loading Salesforce users...");
-      const accessToken = localStorage.getItem("sf_access_token");
-      if (!accessToken) {
-        loginToSalesforce();
-      } else {
-        console.log("Found existing Salesforce token, fetching users...");
-        fetchSalesforceUsers(accessToken);
-      }
-    }
-  }, [platform]);
+  //  Salesforce Login + Fetch Users
 
   useEffect(() => {
+    if (platform !== "salesforce") return;
+
+    console.log("Salesforce platform detected — initializing…");
+
     const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl = params.get("accessToken");
+    const tokenFromUrl =
+      params.get("accessToken") || params.get("access_token");
 
-    if (tokenFromUrl && platform === "salesforce") {
-      console.log("Found access token from Salesforce redirect:", tokenFromUrl);
+    // Case 1: Token came in URL (OAuth callback)
+    if (tokenFromUrl) {
+      console.log("OAuth redirect token received:", tokenFromUrl);
       localStorage.setItem("sf_access_token", tokenFromUrl);
       fetchSalesforceUsers(tokenFromUrl);
+      return;
     }
+
+    // Case 2: Existing token stored
+    const storedToken = localStorage.getItem("sf_access_token");
+    if (storedToken) {
+      console.log("Using stored Salesforce session token");
+      fetchSalesforceUsers(storedToken);
+      return;
+    }
+
+    // Case 3: No token at all — start login
+    console.log("No Salesforce token — starting login…");
+    loginToSalesforce();
   }, [platform]);
 
-  // zoho sdk setup to fetch users
+  // Zoho SDK Init + Fetch Users + Org/User Info
 
-  if (platform === "zoho") {
-    console.log("📦 Loading Zoho users...");
-    if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-      window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-        console.log("Zoho PageLoad event data:", data);
+  useEffect(() => {
+    if (platform !== "zoho") return;
 
-        window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
-          .then((response) => {
-            console.log("Fetched Zoho Users:", response.users);
-            if (response.users && Array.isArray(response.users)) {
-              const transformedUsers = response.users.map((u) => ({
-                id: u.id,
-                name: u.full_name,
-                email: u.email,
-                role: u.role ? u.role.name : "N/A",
-                selected: false,
-              }));
-              setEmployeesList(transformedUsers);
-            }
-          })
-          .catch((error) =>
-            console.error("Failed to fetch Zoho users:", error)
-          );
+    console.log("Zoho platform detected — initializing SDK…");
 
-        Promise.all([
-          window.ZOHO.CRM.CONFIG.getCurrentUser(),
-          window.ZOHO.CRM.CONFIG.getOrgInfo(),
-        ])
-          .then(([user, org]) => setZohoInfo({ user, org }))
-          .catch((err) => console.error("Error fetching Zoho info:", err));
-      });
-
-      window.ZOHO.embeddedApp.init();
-    } else {
-      console.warn("ZOHO SDK not loaded yet.");
+    if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
+      console.warn("Zoho SDK not loaded yet.");
+      return;
     }
-  }
+
+    window.ZOHO.embeddedApp.on("PageLoad", (data) => {
+      console.log("Zoho PageLoad:", data);
+
+      // ---- Fetch All Zoho Users ----
+      window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+        .then((res) => {
+          console.log("Zoho Users:", res.users);
+
+          if (Array.isArray(res.users)) {
+            const users = res.users.map((u) => ({
+              id: u.id,
+              name: u.full_name,
+              email: u.email,
+              role: u.role?.name || "N/A",
+              selected: false,
+            }));
+            setEmployeesList(users);
+          }
+        })
+        .catch((err) => console.error("Zoho user fetch error:", err));
+
+      // ---- Fetch org + current user ----
+      Promise.all([
+        window.ZOHO.CRM.CONFIG.getCurrentUser(),
+        window.ZOHO.CRM.CONFIG.getOrgInfo(),
+      ])
+        .then(([user, org]) => setZohoInfo({ user, org }))
+        .catch((err) => console.error("Zoho org/user fetch error:", err));
+    });
+
+    // ALWAYS call init only once
+    window.ZOHO.embeddedApp.init();
+  }, [platform]);
+
+  // useEffect(() => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   let detectedPlatform = params.get("platform");
+
+  //   if (!detectedPlatform) {
+  //     const ref = document.referrer || "";
+  //     if (ref.includes("force.com") || ref.includes("salesforce.com")) {
+  //       detectedPlatform = "salesforce";
+  //     } else if (ref.includes("zoho.com") || ref.includes("zoho")) {
+  //       detectedPlatform = "zoho";
+  //     } else {
+  //       detectedPlatform = "unknown";
+  //     }
+  //   }
+
+  //   console.log("Detected platform:", detectedPlatform);
+  //   setPlatform(detectedPlatform);
+  // }, []);
+
+  // useEffect(() => {
+  //   if (platform === "salesforce") {
+  //     console.log("Platform is Salesforce — loading Salesforce users...");
+  //     const accessToken = localStorage.getItem("sf_access_token");
+  //     if (!accessToken) {
+  //       loginToSalesforce();
+  //     } else {
+  //       console.log("Found existing Salesforce token, fetching users...");
+  //       fetchSalesforceUsers(accessToken);
+  //     }
+  //   }
+  // }, [platform]);
+
+  // useEffect(() => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   const tokenFromUrl = params.get("accessToken");
+
+  //   if (tokenFromUrl && platform === "salesforce") {
+  //     console.log("Found access token from Salesforce redirect:", tokenFromUrl);
+  //     localStorage.setItem("sf_access_token", tokenFromUrl);
+  //     fetchSalesforceUsers(tokenFromUrl);
+  //   }
+  // }, [platform]);
+
+  // // zoho sdk setup to fetch users
+
+  // if (platform === "zoho") {
+  //   console.log("📦 Loading Zoho users...");
+  //   if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
+  //     window.ZOHO.embeddedApp.on("PageLoad", function (data) {
+  //       console.log("Zoho PageLoad event data:", data);
+
+  //       window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+  //         .then((response) => {
+  //           console.log("Fetched Zoho Users:", response.users);
+  //           if (response.users && Array.isArray(response.users)) {
+  //             const transformedUsers = response.users.map((u) => ({
+  //               id: u.id,
+  //               name: u.full_name,
+  //               email: u.email,
+  //               role: u.role ? u.role.name : "N/A",
+  //               selected: false,
+  //             }));
+  //             setEmployeesList(transformedUsers);
+  //           }
+  //         })
+  //         .catch((error) =>
+  //           console.error("Failed to fetch Zoho users:", error)
+  //         );
+
+  //       Promise.all([
+  //         window.ZOHO.CRM.CONFIG.getCurrentUser(),
+  //         window.ZOHO.CRM.CONFIG.getOrgInfo(),
+  //       ])
+  //         .then(([user, org]) => setZohoInfo({ user, org }))
+  //         .catch((err) => console.error("Error fetching Zoho info:", err));
+  //     });
+
+  //     window.ZOHO.embeddedApp.init();
+  //   } else {
+  //     console.warn("ZOHO SDK not loaded yet.");
+  //   }
+  // }
+
+  // Salesforce OAuth flow
+  // const loginToSalesforce = () => {
+  //   console.log("Starting Salesforce OAuth...");
+  //   const clientId =
+  //     "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
+  //   const redirectUri =
+  //     "https://trackerapi.hirerocks.com/api/tracker/saleforce/callback";
+  //   const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
+  //   const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+  //     redirectUri
+  //   )}&scope=api%20refresh_token`;
+
+  //   // window.open(authUrl, "_blank", "width=600,height=700");
+  //   window.location.href = authUrl;
+  // };
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
     console.log("Starting Salesforce OAuth...");
-    const clientId =
-      "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
-    const redirectUri =
-      "https://trackerapi.hirerocks.com/api/tracker/saleforce/callback";
-    const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
-    const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+
+    const clientId = process.env.REACT_APP_SF_CLIENT_ID;
+    const redirectUri = process.env.REACT_APP_SF_REDIRECT_URI;
+    const SF_LOGIN_URL = process.env.REACT_APP_SF_LOGIN_URL;
+
+    if (!clientId || !redirectUri || !SF_LOGIN_URL) {
+      console.error(" Missing Salesforce config variables.");
+      alert("Salesforce configuration missing.");
+      return;
+    }
+
+    // Build AUTH URL dynamically from config
+    const authorizeUrl = `${SF_LOGIN_URL}/services/oauth2/authorize`;
+
+    const authUrl = `${authorizeUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=api%20refresh_token`;
 
-    // window.open(authUrl, "_blank", "width=600,height=700");
     window.location.href = authUrl;
   };
 
@@ -231,6 +354,50 @@ function Organization() {
   };
 
   // 🔹 Function to fetch Salesforce users
+  // const fetchSalesforceUsers = async (accessToken) => {
+  //   if (!accessToken) {
+  //     console.error("No access token provided to fetch Salesforce users.");
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+  //     console.log("Fetching Salesforce users with access token:", accessToken);
+
+  //     const response = await axios.get(
+  //       `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
+  //       {
+  //         params: { accessToken },
+  //       }
+  //     );
+
+  //     // Expect response.data to be an array of users
+  //     if (response.status === 200 && response.data) {
+  //       console.log("Salesforce users fetched successfully:", response.data);
+
+  //       // Extract names only
+  //       const users = Array.isArray(response.data.records)
+  //         ? response.data.records.map((u) => ({
+  //             id: u.Id,
+  //             name: u.Name,
+  //             email: u.Email,
+  //             role: u.IsActive ? "Active" : "Inactive",
+  //             selected: false,
+  //           }))
+  //         : [];
+
+  //       setEmployeesList(users);
+  //     } else {
+  //       console.warn("⚠️ Unexpected response while fetching users:", response);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching Salesforce users:", error);
+  //     alert("Failed to fetch Salesforce users. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchSalesforceUsers = async (accessToken) => {
     if (!accessToken) {
       console.error("No access token provided to fetch Salesforce users.");
@@ -241,34 +408,51 @@ function Organization() {
       setLoading(true);
       console.log("Fetching Salesforce users with access token:", accessToken);
 
+      // Corrected API URL + Bearer auth
       const response = await axios.get(
         `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
         {
-          params: { accessToken },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         }
       );
 
-      // Expect response.data to be an array of users
       if (response.status === 200 && response.data) {
-        console.log("Salesforce users fetched successfully:", response.data);
+        console.log("Salesforce users fetched:", response.data);
 
-        // Extract names only
-        const users = Array.isArray(response.data.records)
-          ? response.data.records.map((u) => ({
-              id: u.Id,
-              name: u.Name,
-              email: u.Email,
-              role: u.IsActive ? "Active" : "Inactive",
-              selected: false,
-            }))
+        // Accept both response formats:
+        // 1. { records: [...] }
+        // 2. [...] (array)
+        const records = Array.isArray(response.data?.records)
+          ? response.data.records
+          : Array.isArray(response.data)
+          ? response.data
           : [];
+
+        const users = records.map((u) => ({
+          id: u.Id,
+          name: u.Name,
+          email: u.Email || "",
+          role: u.IsActive ? "Active" : "Inactive",
+          selected: false,
+        }));
 
         setEmployeesList(users);
       } else {
-        console.warn("⚠️ Unexpected response while fetching users:", response);
+        console.warn("Unexpected Salesforce user response:", response);
       }
     } catch (error) {
       console.error("Error fetching Salesforce users:", error);
+
+      // Force login again if token expired
+      if (error.response?.status === 401) {
+        console.warn("Token expired. Forcing Salesforce login again.");
+        localStorage.removeItem("sf_access_token");
+        loginToSalesforce();
+        return;
+      }
+
       alert("Failed to fetch Salesforce users. Please try again.");
     } finally {
       setLoading(false);
@@ -396,14 +580,35 @@ function Organization() {
   };
 
   //  add employee multiselect
-  const handleSelect = (emp) => {
-    const exists = selectedEmployees.some((e) => e.id === emp.id);
+  // const handleSelect = (emp) => {
+  //   const exists = selectedEmployees.some((e) => e.id === emp.id);
 
-    if (exists) {
-      setSelectedEmployees((prev) => prev.filter((e) => e.id !== emp.id));
-    } else {
-      setSelectedEmployees((prev) => [...prev, emp]);
-    }
+  //   if (exists) {
+  //     setSelectedEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+  //   } else {
+  //     setSelectedEmployees((prev) => [...prev, emp]);
+  //   }
+  // };
+
+  const handleSelect = (emp) => {
+    const MAX_SELECT = 10;
+    setSelectedEmployees((prev) => {
+      const exists = prev.some((e) => e.id === emp.id);
+
+      if (exists) {
+        // Remove user
+        return prev.filter((e) => e.id !== emp.id);
+      }
+
+      // Limit reached → stop adding
+      if (prev.length >= MAX_SELECT) {
+        alert(`You can select a maximum of ${MAX_SELECT} employees.`);
+        return prev;
+      }
+
+      // Add user
+      return [...prev, emp];
+    });
   };
 
   const handleDone = async () => {
@@ -641,6 +846,10 @@ function Organization() {
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
+                                  disabled={
+                                    !isSelected &&
+                                    selectedEmployees.length >= MAX_SELECT
+                                  }
                                   onChange={() => handleSelect(emp)}
                                 />
                               </td>
