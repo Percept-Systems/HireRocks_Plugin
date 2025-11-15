@@ -129,105 +129,6 @@ function Organization() {
     window.ZOHO.embeddedApp.init();
   }, [platform]);
 
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   let detectedPlatform = params.get("platform");
-
-  //   if (!detectedPlatform) {
-  //     const ref = document.referrer || "";
-  //     if (ref.includes("force.com") || ref.includes("salesforce.com")) {
-  //       detectedPlatform = "salesforce";
-  //     } else if (ref.includes("zoho.com") || ref.includes("zoho")) {
-  //       detectedPlatform = "zoho";
-  //     } else {
-  //       detectedPlatform = "unknown";
-  //     }
-  //   }
-
-  //   console.log("Detected platform:", detectedPlatform);
-  //   setPlatform(detectedPlatform);
-  // }, []);
-
-  // useEffect(() => {
-  //   if (platform === "salesforce") {
-  //     console.log("Platform is Salesforce — loading Salesforce users...");
-  //     const accessToken = localStorage.getItem("sf_access_token");
-  //     if (!accessToken) {
-  //       loginToSalesforce();
-  //     } else {
-  //       console.log("Found existing Salesforce token, fetching users...");
-  //       fetchSalesforceUsers(accessToken);
-  //     }
-  //   }
-  // }, [platform]);
-
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   const tokenFromUrl = params.get("accessToken");
-
-  //   if (tokenFromUrl && platform === "salesforce") {
-  //     console.log("Found access token from Salesforce redirect:", tokenFromUrl);
-  //     localStorage.setItem("sf_access_token", tokenFromUrl);
-  //     fetchSalesforceUsers(tokenFromUrl);
-  //   }
-  // }, [platform]);
-
-  // // zoho sdk setup to fetch users
-
-  // if (platform === "zoho") {
-  //   console.log("📦 Loading Zoho users...");
-  //   if (window.ZOHO && window.ZOHO.embeddedApp && window.ZOHO.CRM) {
-  //     window.ZOHO.embeddedApp.on("PageLoad", function (data) {
-  //       console.log("Zoho PageLoad event data:", data);
-
-  //       window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
-  //         .then((response) => {
-  //           console.log("Fetched Zoho Users:", response.users);
-  //           if (response.users && Array.isArray(response.users)) {
-  //             const transformedUsers = response.users.map((u) => ({
-  //               id: u.id,
-  //               name: u.full_name,
-  //               email: u.email,
-  //               role: u.role ? u.role.name : "N/A",
-  //               selected: false,
-  //             }));
-  //             setEmployeesList(transformedUsers);
-  //           }
-  //         })
-  //         .catch((error) =>
-  //           console.error("Failed to fetch Zoho users:", error)
-  //         );
-
-  //       Promise.all([
-  //         window.ZOHO.CRM.CONFIG.getCurrentUser(),
-  //         window.ZOHO.CRM.CONFIG.getOrgInfo(),
-  //       ])
-  //         .then(([user, org]) => setZohoInfo({ user, org }))
-  //         .catch((err) => console.error("Error fetching Zoho info:", err));
-  //     });
-
-  //     window.ZOHO.embeddedApp.init();
-  //   } else {
-  //     console.warn("ZOHO SDK not loaded yet.");
-  //   }
-  // }
-
-  // Salesforce OAuth flow
-  // const loginToSalesforce = () => {
-  //   console.log("Starting Salesforce OAuth...");
-  //   const clientId =
-  //     "3MVG97L7PWbPq6Uw4WgqpFT3TlrkMjP0R8N09uAqX_a3aQgRaiOaan_wJscQ9APo6d8Fe85pLYnWKs9Y18xdF";
-  //   const redirectUri =
-  //     "https://trackerapi.hirerocks.com/api/tracker/saleforce/callback";
-  //   const loginUrl = "https://login.salesforce.com/services/oauth2/authorize";
-  //   const authUrl = `${loginUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-  //     redirectUri
-  //   )}&scope=api%20refresh_token`;
-
-  //   // window.open(authUrl, "_blank", "width=600,height=700");
-  //   window.location.href = authUrl;
-  // };
-
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
     console.log("Starting Salesforce OAuth...");
@@ -355,50 +256,6 @@ function Organization() {
   };
 
   // 🔹 Function to fetch Salesforce users
-  // const fetchSalesforceUsers = async (accessToken) => {
-  //   if (!accessToken) {
-  //     console.error("No access token provided to fetch Salesforce users.");
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoading(true);
-  //     console.log("Fetching Salesforce users with access token:", accessToken);
-
-  // const response = await axios.get(
-  //   `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
-  //   {
-  //     params: { accessToken },
-  //   }
-  // );
-
-  //     // Expect response.data to be an array of users
-  //     if (response.status === 200 && response.data) {
-  //       console.log("Salesforce users fetched successfully:", response.data);
-
-  //       // Extract names only
-  //       const users = Array.isArray(response.data.records)
-  //         ? response.data.records.map((u) => ({
-  //             id: u.Id,
-  //             name: u.Name,
-  //             email: u.Email,
-  //             role: u.IsActive ? "Active" : "Inactive",
-  //             selected: false,
-  //           }))
-  //         : [];
-
-  //       setEmployeesList(users);
-  //     } else {
-  //       console.warn("⚠️ Unexpected response while fetching users:", response);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching Salesforce users:", error);
-  //     alert("Failed to fetch Salesforce users. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const fetchSalesforceUsers = async (accessToken) => {
     if (!accessToken) {
       console.error("No access token provided to fetch Salesforce users.");
@@ -420,9 +277,6 @@ function Organization() {
       if (response.status === 200 && response.data) {
         console.log("Salesforce users fetched:", response.data);
 
-        // Accept both response formats:
-        // 1. { records: [...] }
-        // 2. [...] (array)
         const records = Array.isArray(response.data?.records)
           ? response.data.records
           : Array.isArray(response.data)
@@ -577,17 +431,6 @@ function Organization() {
       alert("Please enter the employee's first name, last name, and email.");
     }
   };
-
-  //  add employee multiselect
-  // const handleSelect = (emp) => {
-  //   const exists = selectedEmployees.some((e) => e.id === emp.id);
-
-  //   if (exists) {
-  //     setSelectedEmployees((prev) => prev.filter((e) => e.id !== emp.id));
-  //   } else {
-  //     setSelectedEmployees((prev) => [...prev, emp]);
-  //   }
-  // };
 
   const handleSelect = (emp) => {
     setSelectedEmployees((prev) => {
@@ -770,7 +613,7 @@ function Organization() {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-          <div className="w-[400px] mx-auto">
+          <div className="w-full max-w-3xl mx-auto">
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Select Employees (max 10)
             </label>
@@ -808,7 +651,7 @@ function Organization() {
 
               {/* Dropdown — absolute inside parent so it stays within white box */}
               {isOpen && (
-                <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-xl z-10 p-2">
+                <div className="absolute left-0 mt-1 w-[80vw] max-w-[80%] border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-xl z-10 p-2">
                   {employeesList.length === 0 ? (
                     <div className="p-2 text-gray-500 italic">
                       {platform === "zoho"
