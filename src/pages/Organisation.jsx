@@ -28,6 +28,7 @@ function Organization() {
   const [employeesList, setEmployeesList] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
+  const MAX_SELECT = 10;
 
   // 1️ Detect platform once
 
@@ -591,7 +592,6 @@ function Organization() {
   // };
 
   const handleSelect = (emp) => {
-    const MAX_SELECT = 10;
     setSelectedEmployees((prev) => {
       const exists = prev.some((e) => e.id === emp.id);
 
