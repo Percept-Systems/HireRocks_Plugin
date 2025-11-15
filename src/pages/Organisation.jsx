@@ -86,11 +86,10 @@ function Organization() {
             if (response.users && Array.isArray(response.users)) {
               const transformedUsers = response.users.map((u) => ({
                 id: u.id,
-                name: u.email,
+                name: u.full_name,
                 email: u.email,
                 role: u.role ? u.role.name : "N/A",
-                profile: u.profile ? u.profile.name : "N/A",
-                status: u.status,
+                selected: false,
               }));
               setEmployeesList(transformedUsers);
             }
@@ -257,7 +256,10 @@ function Organization() {
         const users = Array.isArray(response.data.records)
           ? response.data.records.map((u) => ({
               id: u.Id,
-              name: u.Email,
+              name: u.Name,
+              email: u.Email,
+              role: u.IsActive ? "Active" : "Inactive",
+              selected: false,
             }))
           : [];
 
@@ -395,11 +397,12 @@ function Organization() {
 
   //  add employee multiselect
   const handleSelect = (emp) => {
-    const isSelected = selectedEmployees.some((e) => e.id === emp.id);
-    if (isSelected) {
-      setSelectedEmployees(selectedEmployees.filter((e) => e.id !== emp.id));
-    } else if (selectedEmployees.length < 10) {
-      setSelectedEmployees([...selectedEmployees, emp]);
+    const exists = selectedEmployees.some((e) => e.id === emp.id);
+
+    if (exists) {
+      setSelectedEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+    } else {
+      setSelectedEmployees((prev) => [...prev, emp]);
     }
   };
 
@@ -602,35 +605,50 @@ function Organization() {
 
               {/* Dropdown — absolute inside parent so it stays within white box */}
               {isOpen && (
-                <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-10">
+                <div className="absolute left-0 right-0 mt-1 border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-xl z-10 p-2">
                   {employeesList.length === 0 ? (
                     <div className="p-2 text-gray-500 italic">
                       {platform === "zoho"
                         ? "No Zoho users found."
-                        : platform === "salesforce"
-                        ? "No Salesforce users found."
-                        : "No users to display."}
+                        : "No Salesforce users found."}
                     </div>
                   ) : (
-                    employeesList.map((emp) => {
-                      const isSelected = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                      );
-                      return (
-                        <div
-                          key={emp.id}
-                          onClick={() => handleSelect(emp)}
-                          className={`flex justify-between items-center p-2 cursor-pointer ${
-                            isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="text-gray-800">{emp.name}</span>
-                          {isSelected && (
-                            <span className="text-blue-600 font-bold">✓</span>
-                          )}
-                        </div>
-                      );
-                    })
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-gray-100 sticky top-0">
+                          <th className="border px-2 py-1 text-left">User</th>
+                          <th className="border px-2 py-1 text-left">Email</th>
+                          <th className="border px-2 py-1 text-left">Role</th>
+                          <th className="border px-2 py-1 text-center">
+                            Add to Hirerocks
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {employeesList.map((emp) => {
+                          const isSelected = selectedEmployees.some(
+                            (e) => e.id === emp.id
+                          );
+
+                          return (
+                            <tr key={emp.id} className="hover:bg-gray-50">
+                              <td className="border px-2 py-1">{emp.name}</td>
+                              <td className="border px-2 py-1">{emp.email}</td>
+                              <td className="border px-2 py-1">{emp.role}</td>
+
+                              <td className="border px-2 py-1 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleSelect(emp)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               )}
@@ -638,9 +656,6 @@ function Organization() {
 
             {/* Button next to dropdown */}
             <div className="flex items-center justify-between mt-3">
-              <p className="text-sm text-gray-600">
-                Selected: {selectedEmployees.length} / 10
-              </p>
               <button
                 onClick={handleDone}
                 className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
