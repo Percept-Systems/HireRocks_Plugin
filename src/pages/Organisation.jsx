@@ -268,7 +268,7 @@ function Organization() {
 
       // Corrected API URL + Bearer auth
       const response = await axios.get(
-        `https://trackerapi.hirerocks.com/api/tracker/saleforce/users`,
+        `https://trackerapi.hirerocks.com/api/tracker/salesforce/users`,
         {
           params: { accessToken },
         }
@@ -441,7 +441,6 @@ function Organization() {
         return prev.filter((e) => e.id !== emp.id);
       }
 
-      // Limit reached → stop adding
       if (prev.length >= MAX_SELECT) {
         alert(`You can select a maximum of ${MAX_SELECT} employees.`);
         return prev;
