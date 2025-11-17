@@ -51,20 +51,6 @@ function Organization() {
     setPlatform(detected);
   }, []);
 
-  useEffect(() => {
-    if (platform !== "zoho" && platform !== "salesforce") {
-      // create 100 dummy users
-      const dummyUsers = Array.from({ length: 100 }).map((_, i) => ({
-        id: `unknown-${i + 1}`,
-        name: `User ${i + 1}`,
-        email: `user${i + 1}@example.com`,
-        role: "Member",
-      }));
-
-      setEmployeesList(dummyUsers);
-    }
-  }, [platform]);
-
   //  Salesforce Login + Fetch Users
 
   useEffect(() => {
@@ -628,8 +614,7 @@ function Organization() {
         {createMode && step === 3 && (
           <div className="w-full max-w-3xl mx-auto">
             <label className="block text-lg font-bold text-gray-700 mb-2">
-              From your CRM users, you may select up to 10 users based on your
-              plan.
+              Select Employees (max 10)
             </label>
 
             <div className="relative">
@@ -670,9 +655,7 @@ function Organization() {
                     <div className="p-2 text-gray-500 italic">
                       {platform === "zoho"
                         ? "No Zoho users found."
-                        : platform === "salesforce"
-                        ? "No Salesforce users found."
-                        : "Showing 100 default users."}
+                        : "No Salesforce users found."}
                     </div>
                   ) : (
                     <table className="w-full border-collapse text-sm">
