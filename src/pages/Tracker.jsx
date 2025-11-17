@@ -170,11 +170,6 @@ function Tracker() {
                   </Select.Option>
                 ))}
               </Select>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-              />
             </div>
           </div>
 
