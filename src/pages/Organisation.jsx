@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
-import "@salesforce/canvas-js-sdk";
 
 function Organization() {
   const navigate = useNavigate();
@@ -17,31 +16,156 @@ function Organization() {
   const [FirstName, setFirstName] = useState("");
   const [LastName, setLastName] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
-  const [errors, setErrors] = useState({}); // State to store validation errors
+  const [errors, setErrors] = useState({});
+  const [error, setError] = useState({});
   const [otpError, setotpError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orgError, setorgError] = useState(false);
-  const [context, setContext] = useState(null);
+  const [platform, setPlatform] = useState(null);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [zohoInfo, setZohoInfo] = useState(null);
+  const [employeesList, setEmployeesList] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
+  const MAX_SELECT = 10;
+
+  // 1️ Detect platform once
 
   useEffect(() => {
-    if (window.Sfdc && window.Sfdc.canvas) {
-      // processing the signed request
-      window.Sfdc.canvas.onReady(() => {
-        const signedRequest = window.Sfdc.canvas.oauth.token();
-        if (signedRequest) {
-          // ToDo (handle request)
-          setContext(signedRequest);
-        } else {
-          setContext("No signed request received");
-        }
-      });
-    } else {
-      console.error("Salesforce Canvas SDK not loaded.");
-      setContext("Salesforce Canvas SDK not loaded.");
+    const params = new URLSearchParams(window.location.search);
+    let detected = params.get("platform");
+
+    if (!detected) {
+      const ref = document.referrer || "";
+      if (ref.includes("force.com") || ref.includes("salesforce.com")) {
+        detected = "salesforce";
+      } else if (ref.includes("zoho.com") || ref.includes("zoho")) {
+        detected = "zoho";
+      } else {
+        detected = "unknown";
+      }
     }
+
+    console.log("Detected platform:", detected);
+    setPlatform(detected);
   }, []);
+
+  useEffect(() => {
+    if (platform !== "zoho" && platform !== "salesforce") {
+      // create 100 dummy users
+      const dummyUsers = Array.from({ length: 100 }).map((_, i) => ({
+        id: `unknown-${i + 1}`,
+        name: `User ${i + 1}`,
+        email: `user${i + 1}@example.com`,
+        role: "Member",
+      }));
+
+      setEmployeesList(dummyUsers);
+    }
+  }, [platform]);
+
+  //  Salesforce Login + Fetch Users
+
+  useEffect(() => {
+    if (platform !== "salesforce") return;
+
+    console.log("Salesforce platform detected — initializing…");
+
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl =
+      params.get("accessToken") || params.get("access_token");
+
+    // Case 1: Token came in URL (OAuth callback)
+    if (tokenFromUrl) {
+      console.log("OAuth redirect token received:", tokenFromUrl);
+      localStorage.setItem("sf_access_token", tokenFromUrl);
+      fetchSalesforceUsers(tokenFromUrl);
+      return;
+    }
+
+    // Case 2: Existing token stored
+    const storedToken = localStorage.getItem("sf_access_token");
+    if (storedToken) {
+      console.log("Using stored Salesforce session token");
+      fetchSalesforceUsers(storedToken);
+      return;
+    }
+
+    // Case 3: No token at all — start login
+    console.log("No Salesforce token — starting login…");
+    loginToSalesforce();
+  }, [platform]);
+
+  // Zoho SDK Init + Fetch Users + Org/User Info
+
+  useEffect(() => {
+    if (platform !== "zoho") return;
+
+    console.log("Zoho platform detected — initializing SDK…");
+
+    if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
+      console.warn("Zoho SDK not loaded yet.");
+      return;
+    }
+
+    window.ZOHO.embeddedApp.on("PageLoad", (data) => {
+      console.log("Zoho PageLoad:", data);
+
+      // ---- Fetch All Zoho Users ----
+      window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+        .then((res) => {
+          console.log("Zoho Users:", res.users);
+
+          if (Array.isArray(res.users)) {
+            const users = res.users.map((u) => ({
+              id: u.id,
+              name: u.full_name,
+              email: u.email,
+              role: u.role?.name || "N/A",
+              selected: false,
+            }));
+            setEmployeesList(users);
+          }
+        })
+        .catch((err) => console.error("Zoho user fetch error:", err));
+
+      // ---- Fetch org + current user ----
+      Promise.all([
+        window.ZOHO.CRM.CONFIG.getCurrentUser(),
+        window.ZOHO.CRM.CONFIG.getOrgInfo(),
+      ])
+        .then(([user, org]) => setZohoInfo({ user, org }))
+        .catch((err) => console.error("Zoho org/user fetch error:", err));
+    });
+
+    // ALWAYS call init only once
+    window.ZOHO.embeddedApp.init();
+  }, [platform]);
+
+  // Salesforce OAuth flow
+  const loginToSalesforce = () => {
+    console.log("Starting Salesforce OAuth...");
+
+    const clientId = process.env.REACT_APP_SF_CLIENT_ID;
+    const redirectUri = process.env.REACT_APP_SF_REDIRECT_URI;
+    const SF_LOGIN_URL = process.env.REACT_APP_SF_LOGIN_URL;
+
+    if (!clientId || !redirectUri || !SF_LOGIN_URL) {
+      console.error(" Missing Salesforce config variables.");
+      alert("Salesforce configuration missing.");
+      return;
+    }
+
+    // Build AUTH URL dynamically from config
+    const authorizeUrl = `${SF_LOGIN_URL}/services/oauth2/authorize`;
+
+    const authUrl = `${authorizeUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=api%20refresh_token`;
+
+    window.location.href = authUrl;
+  };
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
@@ -52,10 +176,13 @@ function Organization() {
         setErrors({ organizationError: "Please Fill all the fields!" });
         return;
       }
-      const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-        UserName: organizationName,
-        Password: organizationPass,
-      });
+      const loginResponse = await axios.post(
+        `${APP_URI}/api/tracker/Account/Login`,
+        {
+          UserName: organizationName,
+          Password: organizationPass,
+        }
+      );
 
       let loginData = loginResponse.data;
       if (typeof loginData === "string") {
@@ -91,9 +218,8 @@ function Organization() {
     setotpError(false);
     setLoading(true);
     try {
-      // Step 1: Verify OTP
       const response = await axios.get(
-        `${APP_URI}/api/Account/VerifyEmailAddress`,
+        `https://api.hirerocks.com/api/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
@@ -103,18 +229,19 @@ function Organization() {
         response.data?.SuccessMessage ===
         "You email address is verified successfully"
       ) {
-        alert(response.data.SuccessMessage); // Success message
+        alert(response.data.SuccessMessage);
 
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        // Extract username from email (before '@')
-        const username = email.split("@")[0];
 
-        // Step 2: Log in the user
-        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-          UserName: username,
-          Password: organizationPass, // Using the password user entered
-          RememberMe: true,
-        });
+        const username = email.split("@")[0];
+        const loginResponse = await axios.post(
+          `${APP_URI}/api/tracker/Account/Login`,
+          {
+            UserName: username,
+            Password: organizationPass,
+            RememberMe: true,
+          }
+        );
 
         let loginData = loginResponse.data;
         if (typeof loginData === "string") {
@@ -122,11 +249,9 @@ function Organization() {
         }
 
         if (loginData.access_token) {
-
-          console.log("Access Token:", loginData.access_token);
           localStorage.setItem("access_token", loginData.access_token);
           alert("Login successful!");
-          setStep(3); // Move to next step (employee addition)
+          setStep(3);
           setLoading(false);
         } else {
           setLoading(false);
@@ -139,8 +264,65 @@ function Organization() {
       }
     } catch (error) {
       setLoading(false);
-      console.error("Error:", error);
+      console.error("Error verifying OTP:", error);
       alert("Something went wrong. Please try again.");
+    }
+  };
+
+  // 🔹 Function to fetch Salesforce users
+  const fetchSalesforceUsers = async (accessToken) => {
+    if (!accessToken) {
+      console.error("No access token provided to fetch Salesforce users.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("Fetching Salesforce users with access token:", accessToken);
+
+      // Corrected API URL + Bearer auth
+      const response = await axios.get(
+        `https://trackerapi.hirerocks.com/api/tracker/salesforce/users`,
+        {
+          params: { accessToken },
+        }
+      );
+
+      if (response.status === 200 && response.data) {
+        console.log("Salesforce users fetched:", response.data);
+
+        const records = Array.isArray(response.data?.records)
+          ? response.data.records
+          : Array.isArray(response.data)
+          ? response.data
+          : [];
+
+        const users = records.map((u) => ({
+          id: u.Id,
+          name: u.Name,
+          email: u.Email || "",
+          role: u.IsActive ? "Active" : "Inactive",
+          selected: false,
+        }));
+
+        setEmployeesList(users);
+      } else {
+        console.warn("Unexpected Salesforce user response:", response);
+      }
+    } catch (error) {
+      console.error("Error fetching Salesforce users:", error);
+
+      // Force login again if token expired
+      if (error.response?.status === 401) {
+        console.warn("Token expired. Forcing Salesforce login again.");
+        localStorage.removeItem("sf_access_token");
+        loginToSalesforce();
+        return;
+      }
+
+      alert("Failed to fetch Salesforce users. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -176,12 +358,16 @@ function Organization() {
       setLoading(true);
       setorgError(false);
       try {
-        const response = await axios.post(`${APP_URI}/PostOrganization`, {
-          Email: email,
-          Password: organizationPass,
-          OrganizationTitle: organizationName,
-          IsRegisterationSuccessFull: true,
-        });
+        const response = await axios.post(
+          `https://api.hirerocks.com/PostOrganization`,
+          {
+            Email: email,
+            Password: organizationPass,
+            OrganizationTitle: organizationName,
+            IsRegisterationSuccessFull: true,
+            Platform: platform,
+          }
+        );
         console.log(response);
         if (response.status == 200) {
           alert(
@@ -236,7 +422,7 @@ function Organization() {
       try {
         // Send API request to add employee
         const response = await axios.post(
-          `${APP_URI}/api/Account/AddWorker`,
+          `${APP_URI}/api/tracker/Account/AddWorker`,
           newEmployee,
           {
             headers: {
@@ -260,9 +446,27 @@ function Organization() {
     }
   };
 
-  // Handle Done Button (Confirm Employee Addition)
+  const handleSelect = (emp) => {
+    setSelectedEmployees((prev) => {
+      const exists = prev.some((e) => e.id === emp.id);
+
+      if (exists) {
+        // Remove user
+        return prev.filter((e) => e.id !== emp.id);
+      }
+
+      if (prev.length >= MAX_SELECT) {
+        alert(`You can select a maximum of ${MAX_SELECT} employees.`);
+        return prev;
+      }
+
+      // Add user
+      return [...prev, emp];
+    });
+  };
+
   const handleDone = async () => {
-    if (employees.length === 0) {
+    if (selectedEmployees.length === 0) {
       alert("No employees to add.");
       return;
     }
@@ -273,6 +477,7 @@ function Organization() {
     <div className="min-h-screen bg-gradient-to-r from-green-950  to-green-200  text-white flex items-center justify-center">
       <div className="bg-white relative tempo text-black p-8 rounded-lg w-[85%] h-[90vh] shadow-lg ">
         {/* <h2 className="absolute ml-[40%] text-center text-[40px] text-green-700">HireRocks</h2> */}
+
         {/* Step 1: Organization Input for Viewing */}
         {step === 1 && !createMode && (
           <div className="flex justify-center items-center w-full h-full">
@@ -421,87 +626,109 @@ function Organization() {
 
         {/* Step 4: Add Employees */}
         {createMode && step === 3 && (
-          <div className="space-y-6" style={{ width: "70vw", height: "70vh" }}>
-            <label className="block text-lg font-bold text-gray-700">
-              Add Employees to Your Organization
+          <div className="w-full max-w-3xl mx-auto">
+            <label className="block text-lg font-bold text-gray-700 mb-2">
+              From your CRM users, you may select up to 10 users based on your
+              plan.
             </label>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center w-full">
-                <input
-                  type="text"
-                  value={FirstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-                  placeholder="First Name"
-                />
-                <input
-                  type="text"
-                  value={LastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none mr-2"
-                  placeholder="Last Name "
-                />
-                <input
-                  type="email"
-                  value={employeeEmail}
-                  onChange={(e) => setEmployeeEmail(e.target.value)}
-                  className="w-1/2 p-3 rounded-md border border-gray-300 text-gray-800 outline-none"
-                  placeholder="Employee Email"
-                />
-                <button
-                  onClick={handleAddEmployee}
-                  className="bg-green-500 hover:bg-green-700 text-white p-[10px] text-[11px] rounded-md ml-2"
-                >
-                  Add Employee
-                </button>
-              </div>
 
-              {/* Employee List Section */}
-              {employees.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-bold text-gray-700 mb-4">
-                    Employees Added:
-                  </h3>
-                  <div className="space-y-4">
-                    {employees.map((emp, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-md hover:bg-gray-200"
+            <div className="relative">
+              {/* Selected employees box */}
+              <div
+                className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white overflow-y-auto max-h-40"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {selectedEmployees.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEmployees.map((emp) => (
+                      <span
+                        key={emp.id}
+                        className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm flex items-center"
                       >
-                        <div>
-                          <p className="text-gray-800 font-medium">
-                            {emp.FirstName}
-                          </p>
-                          <p className="text-gray-800 font-medium">
-                            {emp.LastName}
-                          </p>
-                          <p className="text-sm text-gray-600">{emp.email}</p>
-                        </div>
+                        {emp.name}
                         <button
-                          onClick={() => {
-                            const updatedEmployees = employees.filter(
-                              (_, i) => i !== index
-                            );
-                            setEmployees(updatedEmployees);
+                          className="ml-1 text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelect(emp);
                           }}
-                          className="bg-red-500 hover:bg-red-700 text-white p-2 w-12 h-12 rounded-full"
                         >
-                          &times;
+                          ✕
                         </button>
-                      </div>
+                      </span>
                     ))}
                   </div>
+                ) : (
+                  <span className="text-gray-400">Select employees...</span>
+                )}
+              </div>
+
+              {/* Dropdown — absolute inside parent so it stays within white box */}
+              {isOpen && (
+                <div className="absolute left-0 mt-1 w-[80vw] max-w-[80%] border border-gray-300 rounded-md max-h-60 overflow-y-auto bg-white shadow-xl z-10 p-2">
+                  {employeesList.length === 0 ? (
+                    <div className="p-2 text-gray-500 italic">
+                      {platform === "zoho"
+                        ? "No Zoho users found."
+                        : platform === "salesforce"
+                        ? "No Salesforce users found."
+                        : "Showing 100 default users."}
+                    </div>
+                  ) : (
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-gray-100 sticky top-0">
+                          <th className="border px-2 py-1 text-left">User</th>
+                          <th className="border px-2 py-1 text-left">Email</th>
+                          <th className="border px-2 py-1 text-left">Role</th>
+                          <th className="border px-2 py-1 text-center">
+                            Add to Hirerocks
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {employeesList.map((emp) => {
+                          const isSelected = selectedEmployees.some(
+                            (e) => e.id === emp.id
+                          );
+
+                          return (
+                            <tr key={emp.id} className="hover:bg-gray-50">
+                              <td className="border px-2 py-1">{emp.name}</td>
+                              <td className="border px-2 py-1">{emp.email}</td>
+                              <td className="border px-2 py-1">{emp.role}</td>
+
+                              <td className="border px-2 py-1 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={
+                                    !isSelected &&
+                                    selectedEmployees.length >= MAX_SELECT
+                                  }
+                                  onChange={() => handleSelect(emp)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Done Button */}
-            <button
-              onClick={handleDone}
-              className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md mt-6"
-            >
-              Done
-            </button>
+            {/* Button next to dropdown */}
+            <div className="flex items-center justify-between mt-3">
+              <button
+                onClick={handleDone}
+                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
 

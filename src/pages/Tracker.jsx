@@ -96,7 +96,7 @@ function Tracker() {
       };
 
       const response = await axios.post(
-        `${APP_URI}/api/Account/AddWorker`,
+        `${APP_URI}/api/tracker/Account/AddWorker`,
         data,
         config
       );
@@ -170,11 +170,6 @@ function Tracker() {
                   </Select.Option>
                 ))}
               </Select>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-              />
             </div>
           </div>
 
