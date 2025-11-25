@@ -70,7 +70,7 @@ function Organization() {
   useEffect(() => {
     if (platform !== "zoho") return;
 
-    if (step !== 3) return; 
+    if (step !== 3) return;
 
     console.log("Zoho step3 user load triggered");
 
@@ -132,7 +132,8 @@ function Organization() {
       scopes.join(",")
     )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-    window.location.href = authUrl;
+    // window.location.href = authUrl;
+    window.open(authUrl, "_blank");
   };
 
   //  Salesforce Login + Fetch Users
