@@ -81,8 +81,18 @@ function Organization() {
     // Case 1: OAuth redirect
     if (tokenFromUrl) {
       console.log("OAuth redirect token received:", tokenFromUrl);
+
       localStorage.setItem("zoho_access_token", tokenFromUrl);
+
       fetchZohoUsers(tokenFromUrl);
+
+      const crmReturnUrl = localStorage.getItem("zoho_original_crm_url");
+
+      if (crmReturnUrl) {
+        window.location.href =
+          crmReturnUrl + `?platform=zoho&accessToken=${tokenFromUrl}`;
+      }
+
       return;
     }
 
@@ -120,6 +130,11 @@ function Organization() {
       return;
     }
 
+    //-------------------------------
+    // store CRM tab URL before OAuth
+    //-------------------------------
+    localStorage.setItem("zoho_original_crm_url", window.location.href);
+
     const scopes = [
       "ZohoCRM.users.ALL",
       "ZohoCRM.org.READ",
@@ -132,8 +147,7 @@ function Organization() {
       scopes.join(",")
     )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-    // window.location.href = authUrl;
-    window.open(authUrl, "_blank");
+    window.location.href = authUrl;
   };
 
   //  Salesforce Login + Fetch Users
