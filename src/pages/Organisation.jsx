@@ -147,7 +147,8 @@ function Organization() {
       scopes.join(",")
     )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-    window.location.href = authUrl;
+    // window.location.href = authUrl;
+    window.open(authUrl, "_blank");
   };
 
   //  Salesforce Login + Fetch Users
