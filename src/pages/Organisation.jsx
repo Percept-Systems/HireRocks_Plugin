@@ -65,75 +65,75 @@ function Organization() {
     }
   }, [platform]);
 
+  // Zoho OAuth flow
 
-// Zoho OAuth flow
+  useEffect(() => {
+    if (platform !== "zoho") return;
 
-useEffect(() => {
-  if (platform !== "zoho") return;
+    if (step !== 3) return; 
 
-  console.log("Zoho platform detected — initializing…");
+    console.log("Zoho step3 user load triggered");
 
-  const params = new URLSearchParams(window.location.search);
-  const tokenFromUrl =
-    params.get("accessToken") || params.get("access_token");
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl =
+      params.get("accessToken") || params.get("access_token");
 
-  // Case 1: OAuth redirect
-  if (tokenFromUrl) {
-    console.log("OAuth redirect token received:", tokenFromUrl);
-    localStorage.setItem("zoho_access_token", tokenFromUrl);
-    fetchZohoUsers(tokenFromUrl);
-    return;
-  }
+    // Case 1: OAuth redirect
+    if (tokenFromUrl) {
+      console.log("OAuth redirect token received:", tokenFromUrl);
+      localStorage.setItem("zoho_access_token", tokenFromUrl);
+      fetchZohoUsers(tokenFromUrl);
+      return;
+    }
 
-  // Case 2: Existing token
-  const storedToken = localStorage.getItem("zoho_access_token");
-  if (storedToken) {
-    console.log("Using stored Zoho access token");
-    fetchZohoUsers(storedToken);
-    return;
-  }
+    // Case 2: Existing token
+    const storedToken = localStorage.getItem("zoho_access_token");
+    if (storedToken) {
+      console.log("Using stored Zoho access token");
+      fetchZohoUsers(storedToken);
+      return;
+    }
 
-  // Case 3: No token → login
-  console.log("No Zoho token found — starting login…");
-  loginToZoho();
-}, [platform]);
+    // Case 3: No token → login
+    console.log("No Zoho token found — starting login…");
+    loginToZoho();
+  }, [platform, step]);
 
+  const loginToZoho = () => {
+    console.log("Starting Zoho OAuth...");
 
-const loginToZoho = () => {
-  console.log("Starting Zoho OAuth...");
+    const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
+    const redirectUri = process.env.REACT_APP_ZOHO_REDIRECT_URI;
+    const ZOHO_AUTH_DOMAIN = process.env.REACT_APP_ZOHO_AUTH_DOMAIN;
 
-  const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
-  const redirectUri = process.env.REACT_APP_ZOHO_REDIRECT_URI;
-  const ZOHO_AUTH_DOMAIN = process.env.REACT_APP_ZOHO_AUTH_DOMAIN; 
+    const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
-  const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+    if (!clientId || !redirectUri || !ZOHO_AUTH_DOMAIN) {
+      console.error("Missing Zoho OAuth configuration.");
+      alert("Zoho configuration missing.");
+      return;
+    }
 
-  if (!clientId || !redirectUri || !ZOHO_AUTH_DOMAIN) {
-    console.error("Missing Zoho OAuth configuration.");
-    alert("Zoho configuration missing.");
-    return;
-  }
+    if (!hireRocksOrgId) {
+      console.error("hireRocksOrgId missing");
+      alert("Missing organisation id");
+      return;
+    }
 
-  if (!hireRocksOrgId) {
-    console.error("hireRocksOrgId missing");
-    alert("Missing organisation id");
-    return;
-  }
+    const scopes = [
+      "ZohoCRM.users.ALL",
+      "ZohoCRM.org.READ",
+      "ZohoCRM.modules.ALL",
+    ];
 
-  const scopes = [
-    "ZohoCRM.users.ALL",
-    "ZohoCRM.org.READ",
-    "ZohoCRM.modules.ALL"
-  ];
+    const authUrl = `${ZOHO_AUTH_DOMAIN}/oauth/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=${encodeURIComponent(
+      scopes.join(",")
+    )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-  const authUrl = `${ZOHO_AUTH_DOMAIN}/oauth/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri
-  )}&scope=${encodeURIComponent(scopes.join(','))}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
-
-  window.location.href = authUrl;
-};
-
-
+    window.location.href = authUrl;
+  };
 
   //  Salesforce Login + Fetch Users
 
@@ -212,8 +212,6 @@ const loginToZoho = () => {
   //   // ALWAYS call init only once
   //   window.ZOHO.embeddedApp.init();
   // }, [platform]);
-
-  
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
@@ -324,6 +322,9 @@ const loginToZoho = () => {
           localStorage.setItem("access_token", loginData.access_token);
           alert("Login successful!");
           setStep(3);
+          await loginToZoho();
+
+          await fetchZohoUsers();
           setLoading(false);
         } else {
           setLoading(false);
@@ -398,74 +399,72 @@ const loginToZoho = () => {
     }
   };
 
-// function to fetch zoho users
+  // function to fetch zoho users
 
-const fetchZohoUsers = async (accessToken) => {
-  if (!accessToken) {
-    console.error("No Zoho access token provided.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    console.log("Fetching Zoho users with access token:", accessToken);
-
-    const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
-
-    if (!hireRocksOrgId) {
-      console.error("hireRocksOrgId not found in localStorage");
-      alert("Organisation context missing.");
+  const fetchZohoUsers = async (accessToken) => {
+    if (!accessToken) {
+      console.error("No Zoho access token provided.");
       return;
     }
 
-    const response = await axios.get(
-      `https://api.hirerocks.com/api/zoho/api/zoho/active_users`,
-      {
-        params: {
-          accessToken,
-          hireRocksOrgId,
-        },
+    try {
+      setLoading(true);
+      console.log("Fetching Zoho users with access token:", accessToken);
+
+      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+      if (!hireRocksOrgId) {
+        console.error("hireRocksOrgId not found in localStorage");
+        alert("Organisation context missing.");
+        return;
       }
-    );
 
-    if (response.status === 200 && response.data) {
-      console.log("Zoho users fetched:", response.data);
+      const response = await axios.get(
+        `https://api.hirerocks.com/api/zoho/api/zoho/active_users`,
+        {
+          params: {
+            accessToken,
+            hireRocksOrgId,
+          },
+        }
+      );
 
-      const records = Array.isArray(response.data)
-        ? response.data
-        : Array.isArray(response.data?.users)
-        ? response.data.users
-        : [];
+      if (response.status === 200 && response.data) {
+        console.log("Zoho users fetched:", response.data);
 
-      const users = records.map((u) => ({
-        id: u.id,
-        name: u.full_name,
-        email: u.email,
-        role: u.role_name,
-        selected: false,
-      }));
+        const records = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.users)
+          ? response.data.users
+          : [];
 
-      setEmployeesList(users);
-    } else {
-      console.warn("Unexpected Zoho response:", response);
+        const users = records.map((u) => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+          role: u.role_name,
+          selected: false,
+        }));
+
+        setEmployeesList(users);
+      } else {
+        console.warn("Unexpected Zoho response:", response);
+      }
+    } catch (error) {
+      console.error("Error fetching Zoho users:", error);
+
+      if (error.response?.status === 401) {
+        console.warn("Zoho token expired — forcing login again");
+        localStorage.removeItem("zoho_access_token");
+        loginToZoho();
+        return;
+      }
+
+      alert("Failed to fetch Zoho users. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching Zoho users:", error);
-
-    if (error.response?.status === 401) {
-      console.warn("Zoho token expired — forcing login again");
-      localStorage.removeItem("zoho_access_token");
-      loginToZoho();
-      return;
-    }
-
-    alert("Failed to fetch Zoho users. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   // Handle Next Step
   const handleNextStep = async () => {
@@ -511,6 +510,7 @@ const fetchZohoUsers = async (accessToken) => {
         );
         console.log(response);
         if (response.status == 200) {
+          localStorage.setItem("hireRocksOrgId", response.data.organizationId);
           alert(
             "Organization created successfully! Please check your email for the OTP."
           );
