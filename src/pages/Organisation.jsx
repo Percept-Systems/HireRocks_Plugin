@@ -65,6 +65,76 @@ function Organization() {
     }
   }, [platform]);
 
+
+// Zoho OAuth flow
+
+useEffect(() => {
+  if (platform !== "zoho") return;
+
+  console.log("Zoho platform detected — initializing…");
+
+  const params = new URLSearchParams(window.location.search);
+  const tokenFromUrl =
+    params.get("accessToken") || params.get("access_token");
+
+  // Case 1: OAuth redirect
+  if (tokenFromUrl) {
+    console.log("OAuth redirect token received:", tokenFromUrl);
+    localStorage.setItem("zoho_access_token", tokenFromUrl);
+    fetchZohoUsers(tokenFromUrl);
+    return;
+  }
+
+  // Case 2: Existing token
+  const storedToken = localStorage.getItem("zoho_access_token");
+  if (storedToken) {
+    console.log("Using stored Zoho access token");
+    fetchZohoUsers(storedToken);
+    return;
+  }
+
+  // Case 3: No token → login
+  console.log("No Zoho token found — starting login…");
+  loginToZoho();
+}, [platform]);
+
+
+const loginToZoho = () => {
+  console.log("Starting Zoho OAuth...");
+
+  const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
+  const redirectUri = process.env.REACT_APP_ZOHO_REDIRECT_URI;
+  const ZOHO_AUTH_DOMAIN = process.env.REACT_APP_ZOHO_AUTH_DOMAIN; 
+
+  const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+  if (!clientId || !redirectUri || !ZOHO_AUTH_DOMAIN) {
+    console.error("Missing Zoho OAuth configuration.");
+    alert("Zoho configuration missing.");
+    return;
+  }
+
+  if (!hireRocksOrgId) {
+    console.error("hireRocksOrgId missing");
+    alert("Missing organisation id");
+    return;
+  }
+
+  const scopes = [
+    "ZohoCRM.users.ALL",
+    "ZohoCRM.org.READ",
+    "ZohoCRM.modules.ALL"
+  ];
+
+  const authUrl = `${ZOHO_AUTH_DOMAIN}/oauth/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+    redirectUri
+  )}&scope=${encodeURIComponent(scopes.join(','))}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
+
+  window.location.href = authUrl;
+};
+
+
+
   //  Salesforce Login + Fetch Users
 
   useEffect(() => {
@@ -99,49 +169,51 @@ function Organization() {
 
   // Zoho SDK Init + Fetch Users + Org/User Info
 
-  useEffect(() => {
-    if (platform !== "zoho") return;
+  // useEffect(() => {
+  //   if (platform !== "zoho") return;
 
-    console.log("Zoho platform detected — initializing SDK…");
+  //   console.log("Zoho platform detected — initializing SDK…");
 
-    if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
-      console.warn("Zoho SDK not loaded yet.");
-      return;
-    }
+  //   if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
+  //     console.warn("Zoho SDK not loaded yet.");
+  //     return;
+  //   }
 
-    window.ZOHO.embeddedApp.on("PageLoad", (data) => {
-      console.log("Zoho PageLoad:", data);
+  //   window.ZOHO.embeddedApp.on("PageLoad", (data) => {
+  //     console.log("Zoho PageLoad:", data);
 
-      // ---- Fetch All Zoho Users ----
-      window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
-        .then((res) => {
-          console.log("Zoho Users:", res.users);
+  //     // ---- Fetch All Zoho Users ----
+  //     window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
+  //       .then((res) => {
+  //         console.log("Zoho Users:", res.users);
 
-          if (Array.isArray(res.users)) {
-            const users = res.users.map((u) => ({
-              id: u.id,
-              name: u.full_name,
-              email: u.email,
-              role: u.role?.name || "N/A",
-              selected: false,
-            }));
-            setEmployeesList(users);
-          }
-        })
-        .catch((err) => console.error("Zoho user fetch error:", err));
+  //         if (Array.isArray(res.users)) {
+  //           const users = res.users.map((u) => ({
+  //             id: u.id,
+  //             name: u.full_name,
+  //             email: u.email,
+  //             role: u.role?.name || "N/A",
+  //             selected: false,
+  //           }));
+  //           setEmployeesList(users);
+  //         }
+  //       })
+  //       .catch((err) => console.error("Zoho user fetch error:", err));
 
-      // ---- Fetch org + current user ----
-      Promise.all([
-        window.ZOHO.CRM.CONFIG.getCurrentUser(),
-        window.ZOHO.CRM.CONFIG.getOrgInfo(),
-      ])
-        .then(([user, org]) => setZohoInfo({ user, org }))
-        .catch((err) => console.error("Zoho org/user fetch error:", err));
-    });
+  //     // ---- Fetch org + current user ----
+  //     Promise.all([
+  //       window.ZOHO.CRM.CONFIG.getCurrentUser(),
+  //       window.ZOHO.CRM.CONFIG.getOrgInfo(),
+  //     ])
+  //       .then(([user, org]) => setZohoInfo({ user, org }))
+  //       .catch((err) => console.error("Zoho org/user fetch error:", err));
+  //   });
 
-    // ALWAYS call init only once
-    window.ZOHO.embeddedApp.init();
-  }, [platform]);
+  //   // ALWAYS call init only once
+  //   window.ZOHO.embeddedApp.init();
+  // }, [platform]);
+
+  
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
@@ -269,7 +341,7 @@ function Organization() {
     }
   };
 
-  // 🔹 Function to fetch Salesforce users
+  //  Function to fetch Salesforce users
   const fetchSalesforceUsers = async (accessToken) => {
     if (!accessToken) {
       console.error("No access token provided to fetch Salesforce users.");
@@ -325,6 +397,75 @@ function Organization() {
       setLoading(false);
     }
   };
+
+// function to fetch zoho users
+
+const fetchZohoUsers = async (accessToken) => {
+  if (!accessToken) {
+    console.error("No Zoho access token provided.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    console.log("Fetching Zoho users with access token:", accessToken);
+
+    const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+    if (!hireRocksOrgId) {
+      console.error("hireRocksOrgId not found in localStorage");
+      alert("Organisation context missing.");
+      return;
+    }
+
+    const response = await axios.get(
+      `https://api.hirerocks.com/api/zoho/api/zoho/active_users`,
+      {
+        params: {
+          accessToken,
+          hireRocksOrgId,
+        },
+      }
+    );
+
+    if (response.status === 200 && response.data) {
+      console.log("Zoho users fetched:", response.data);
+
+      const records = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.users)
+        ? response.data.users
+        : [];
+
+      const users = records.map((u) => ({
+        id: u.id,
+        name: u.full_name,
+        email: u.email,
+        role: u.role_name,
+        selected: false,
+      }));
+
+      setEmployeesList(users);
+    } else {
+      console.warn("Unexpected Zoho response:", response);
+    }
+  } catch (error) {
+    console.error("Error fetching Zoho users:", error);
+
+    if (error.response?.status === 401) {
+      console.warn("Zoho token expired — forcing login again");
+      localStorage.removeItem("zoho_access_token");
+      loginToZoho();
+      return;
+    }
+
+    alert("Failed to fetch Zoho users. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   // Handle Next Step
   const handleNextStep = async () => {
