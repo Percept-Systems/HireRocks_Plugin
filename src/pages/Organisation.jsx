@@ -202,7 +202,7 @@ function Organization() {
       const ids = selectedEmployees.map((u) => u.id);
 
       const body = {
-        Id: ids,
+        ZohoUserIds: ids,
       };
 
       console.log("Sending to HireRocks:", body);
