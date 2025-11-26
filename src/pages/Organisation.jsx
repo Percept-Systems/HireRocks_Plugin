@@ -191,29 +191,34 @@ function Organization() {
       }
 
       const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+      const accessToken = localStorage.getItem("access_token");
+
+      if (!accessToken || !hireRocksOrgId) {
+        alert("Missing authentication tokens.");
+        console.error({ accessToken, hireRocksOrgId });
+        return;
+      }
 
       const ids = selectedEmployees.map((u) => u.id);
-
-      // Prepare API body in required format
 
       const body = {
         ZohoUserIds: ids,
       };
+
       console.log("Sending to HireRocks:", body);
 
-      // Send POST request
       const response = await axios.post(
         "https://api.hirerocks.com/api/zoho/create_hirerocks_users",
         body,
         {
           headers: {
             "Content-Type": "application/json",
-            hireRocksOrgId, // if your backend expects this
+            Authorization: `Bearer ${accessToken}`,
+            hireRocksOrgId,
           },
         }
       );
 
-      // Handle success response
       if (response.status === 200) {
         alert("Users successfully created in HireRocks!");
         console.log("HireRocks response:", response.data);
