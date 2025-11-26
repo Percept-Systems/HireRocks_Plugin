@@ -185,33 +185,25 @@ function Organization() {
 
   const sendSelectedUsersToHireRocks = async () => {
     try {
-      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
-
-      if (!hireRocksOrgId) {
-        alert("Organisation context missing.");
-        return;
-      }
-
-      //  Filter selected users
-      const selectedUsers = employeesList
-        .filter((u) => u.selected)
-        .map((u) => u.id); // only ZohoUserIds
-
-      if (selectedUsers.length === 0) {
+      if (selectedEmployees.length === 0) {
         alert("Please select at least one user.");
         return;
       }
 
-      // Prepare API body in required format
-      const body = {
-        ZohoUserIds: selectedUsers,
-      };
+      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
+      const ids = selectedEmployees.map((u) => u.id);
+
+      // Prepare API body in required format
+
+      const body = {
+        ZohoUserIds: ids,
+      };
       console.log("Sending to HireRocks:", body);
 
       // Send POST request
       const response = await axios.post(
-        "https://api.hirerocks.com/api/zoho/api/zoho/create_hirerocks_users",
+        "https://api.hirerocks.com/api/zoho/create_hirerocks_users",
         body,
         {
           headers: {
