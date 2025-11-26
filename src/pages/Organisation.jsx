@@ -181,6 +181,61 @@ function Organization() {
     }
   }, []);
 
+  //  API to send selected users from zoho to hirerocks
+
+  const sendSelectedUsersToHireRocks = async () => {
+    try {
+      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+      if (!hireRocksOrgId) {
+        alert("Organisation context missing.");
+        return;
+      }
+
+      //  Filter selected users
+      const selectedUsers = employeesList
+        .filter((u) => u.selected)
+        .map((u) => u.id); // only ZohoUserIds
+
+      if (selectedUsers.length === 0) {
+        alert("Please select at least one user.");
+        return;
+      }
+
+      // Prepare API body in required format
+      const body = {
+        ZohoUserIds: selectedUsers,
+      };
+
+      console.log("Sending to HireRocks:", body);
+
+      // Send POST request
+      const response = await axios.post(
+        "https://api.hirerocks.com/api/zoho/api/zoho/create_hirerocks_users",
+        body,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            hireRocksOrgId, // if your backend expects this
+          },
+        }
+      );
+
+      // Handle success response
+      if (response.status === 200) {
+        alert("Users successfully created in HireRocks!");
+        console.log("HireRocks response:", response.data);
+        setStep(5);
+      } else {
+        alert("Unexpected response from HireRocks.");
+        console.warn("Response:", response);
+      }
+    } catch (error) {
+      console.error("Error sending users:", error);
+      alert("Failed to send selected users. Please try again.");
+    }
+  };
+
   //  Salesforce Login + Fetch Users
 
   useEffect(() => {
@@ -606,14 +661,6 @@ function Organization() {
     });
   };
 
-  const handleDone = async () => {
-    if (selectedEmployees.length === 0) {
-      alert("No employees to add.");
-      return;
-    }
-    setStep(5);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-r from-green-950  to-green-200  text-white flex items-center justify-center">
       <div className="bg-white relative tempo text-black p-8 rounded-lg w-[85%] h-[90vh] shadow-lg ">
@@ -864,7 +911,7 @@ function Organization() {
             {/* Button next to dropdown */}
             <div className="flex items-center justify-between mt-3">
               <button
-                onClick={handleDone}
+                onClick={sendSelectedUsersToHireRocks}
                 className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
               >
                 Done
