@@ -202,7 +202,7 @@ function Organization() {
       const ids = selectedEmployees.map((u) => u.id);
 
       const body = {
-        ZohoUserIds: ids,
+        Id: ids,
       };
 
       console.log("Sending to HireRocks:", body);
@@ -356,14 +356,11 @@ function Organization() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const username = email.split("@")[0];
-        const loginResponse = await axios.post(
-          `${APP_URI}/api/tracker/Account/Login`,
-          {
-            UserName: username,
-            Password: organizationPass,
-            RememberMe: true,
-          }
-        );
+        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
+          UserName: username,
+          Password: organizationPass,
+          RememberMe: true,
+        });
 
         let loginData = loginResponse.data;
         if (typeof loginData === "string") {
@@ -491,7 +488,7 @@ function Organization() {
           : [];
 
         const users = records.map((u) => ({
-          id: u.ZohoUserId,
+          id: u.Id,
           name: `${u.FirstName || ""} ${u.LastName || ""}`.trim(),
           email: u.Email || "",
           role: u.Role || "",
