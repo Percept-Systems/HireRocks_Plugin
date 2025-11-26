@@ -67,9 +67,32 @@ function Organization() {
 
   // Zoho OAuth flow
 
+  // ----------------------------------------------
+  // LISTENER TO RECEIVE TOKEN FROM OAUTH POPUP
+  // ----------------------------------------------
+  useEffect(() => {
+    function handleMessage(event) {
+      if (event.data?.type === "ZOHO_TOKEN") {
+        const token = event.data.token;
+        console.log("Received Zoho token from popup:", token);
+
+        localStorage.setItem("zoho_access_token", token);
+
+        fetchZohoUsers(token);
+
+        // No redirect required — we remain inside CRM iframe
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // ----------------------------------------------
+  // EXISTING FLOW (UPDATED TO REMOVE REDIRECTS)
+  // ----------------------------------------------
   useEffect(() => {
     if (platform !== "zoho") return;
-
     if (step !== 3) return;
 
     console.log("Zoho step3 user load triggered");
@@ -78,21 +101,13 @@ function Organization() {
     const tokenFromUrl =
       params.get("accessToken") || params.get("access_token");
 
-    // Case 1: OAuth redirect
+    // Case 1: Token present in URL (ONLY happens when not inside CRM)
+    // This is only used by popup → postMessage now.
     if (tokenFromUrl) {
-      console.log("OAuth redirect token received:", tokenFromUrl);
-
-      localStorage.setItem("zoho_access_token", tokenFromUrl);
-
-      fetchZohoUsers(tokenFromUrl);
-
-      const crmReturnUrl = localStorage.getItem("zoho_original_crm_url");
-
-      if (crmReturnUrl) {
-        window.location.href =
-          crmReturnUrl + `?platform=zoho&accessToken=${tokenFromUrl}`;
-      }
-
+      console.log(
+        "OAuth redirect token: (should only be in popup)",
+        tokenFromUrl
+      );
       return;
     }
 
@@ -104,11 +119,14 @@ function Organization() {
       return;
     }
 
-    // Case 3: No token → login
-    console.log("No Zoho token found — starting login…");
+    // Case 3: No token → login via popup
+    console.log("No Zoho token found — starting login...");
     loginToZoho();
   }, [platform, step]);
 
+  // ----------------------------------------------
+  // UPDATED loginToZoho()
+  // ----------------------------------------------
   const loginToZoho = () => {
     console.log("Starting Zoho OAuth...");
 
@@ -130,9 +148,9 @@ function Organization() {
       return;
     }
 
-    //-------------------------------
-    // store CRM tab URL before OAuth
-    //-------------------------------
+    //---------------------------------------
+    // save CRM tab URL for future if needed
+    //---------------------------------------
     localStorage.setItem("zoho_original_crm_url", window.location.href);
 
     const scopes = [
@@ -147,9 +165,29 @@ function Organization() {
       scopes.join(",")
     )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-    // window.location.href = authUrl;
-    window.open(authUrl, "_blank");
+    // 🚀 IMPORTANT: OPEN OAUTH IN POPUP, NOT SAME WINDOW
+    window.open(authUrl, "zoho_oauth", "width=600,height=700");
   };
+
+  // Redirect page code (frontend)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get("accessToken");
+
+    if (accessToken && window.opener) {
+      console.log("Sending Zoho token back to CRM iframe...");
+
+      window.opener.postMessage(
+        {
+          type: "ZOHO_TOKEN",
+          token: accessToken,
+        },
+        "*"
+      );
+
+      window.close(); // close popup
+    }
+  }, []);
 
   //  Salesforce Login + Fetch Users
 
@@ -182,52 +220,6 @@ function Organization() {
     console.log("No Salesforce token — starting login…");
     loginToSalesforce();
   }, [platform]);
-
-  // Zoho SDK Init + Fetch Users + Org/User Info
-
-  // useEffect(() => {
-  //   if (platform !== "zoho") return;
-
-  //   console.log("Zoho platform detected — initializing SDK…");
-
-  //   if (!window.ZOHO || !window.ZOHO.embeddedApp || !window.ZOHO.CRM) {
-  //     console.warn("Zoho SDK not loaded yet.");
-  //     return;
-  //   }
-
-  //   window.ZOHO.embeddedApp.on("PageLoad", (data) => {
-  //     console.log("Zoho PageLoad:", data);
-
-  //     // ---- Fetch All Zoho Users ----
-  //     window.ZOHO.CRM.API.getAllUsers({ Type: "AllUsers" })
-  //       .then((res) => {
-  //         console.log("Zoho Users:", res.users);
-
-  //         if (Array.isArray(res.users)) {
-  //           const users = res.users.map((u) => ({
-  //             id: u.id,
-  //             name: u.full_name,
-  //             email: u.email,
-  //             role: u.role?.name || "N/A",
-  //             selected: false,
-  //           }));
-  //           setEmployeesList(users);
-  //         }
-  //       })
-  //       .catch((err) => console.error("Zoho user fetch error:", err));
-
-  //     // ---- Fetch org + current user ----
-  //     Promise.all([
-  //       window.ZOHO.CRM.CONFIG.getCurrentUser(),
-  //       window.ZOHO.CRM.CONFIG.getOrgInfo(),
-  //     ])
-  //       .then(([user, org]) => setZohoInfo({ user, org }))
-  //       .catch((err) => console.error("Zoho org/user fetch error:", err));
-  //   });
-
-  //   // ALWAYS call init only once
-  //   window.ZOHO.embeddedApp.init();
-  // }, [platform]);
 
   // Salesforce OAuth flow
   const loginToSalesforce = () => {
