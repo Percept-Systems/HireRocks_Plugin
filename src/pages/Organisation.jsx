@@ -439,10 +439,10 @@ function Organization() {
           : [];
 
         const users = records.map((u) => ({
-          id: u.id,
-          name: u.full_name,
-          email: u.email,
-          role: u.role_name,
+          id: u.ZohoUserId,
+          name: `${u.FirstName || ""} ${u.LastName || ""}`.trim(),
+          email: u.Email || "",
+          role: u.Role || "",
           selected: false,
         }));
 
