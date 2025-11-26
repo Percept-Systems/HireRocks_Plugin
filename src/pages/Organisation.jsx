@@ -65,11 +65,7 @@ function Organization() {
     }
   }, [platform]);
 
-  // Zoho OAuth flow
-
-  // ----------------------------------------------
   // LISTENER TO RECEIVE TOKEN FROM OAUTH POPUP
-  // ----------------------------------------------
   useEffect(() => {
     function handleMessage(event) {
       if (event.data?.type === "ZOHO_TOKEN") {
@@ -88,9 +84,8 @@ function Organization() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  // ----------------------------------------------
-  // EXISTING FLOW (UPDATED TO REMOVE REDIRECTS)
-  // ----------------------------------------------
+  // ZOHO OAuth Flow
+
   useEffect(() => {
     if (platform !== "zoho") return;
     if (step !== 3) return;
@@ -102,7 +97,7 @@ function Organization() {
       params.get("accessToken") || params.get("access_token");
 
     // Case 1: Token present in URL (ONLY happens when not inside CRM)
-    // This is only used by popup → postMessage now.
+    // This is only used by popup postMessage now.
     if (tokenFromUrl) {
       console.log(
         "OAuth redirect token: (should only be in popup)",
@@ -124,9 +119,8 @@ function Organization() {
     loginToZoho();
   }, [platform, step]);
 
-  // ----------------------------------------------
-  // UPDATED loginToZoho()
-  // ----------------------------------------------
+  // loginToZoho()
+
   const loginToZoho = () => {
     console.log("Starting Zoho OAuth...");
 
@@ -148,9 +142,7 @@ function Organization() {
       return;
     }
 
-    //---------------------------------------
-    // save CRM tab URL for future if needed
-    //---------------------------------------
+    // save CRM tab URL
     localStorage.setItem("zoho_original_crm_url", window.location.href);
 
     const scopes = [
@@ -165,7 +157,7 @@ function Organization() {
       scopes.join(",")
     )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-    // 🚀 IMPORTANT: OPEN OAUTH IN POPUP, NOT SAME WINDOW
+    // OPEN OAUTH IN POPUP, NOT SAME WINDOW
     window.open(authUrl, "zoho_oauth", "width=600,height=700");
   };
 
@@ -428,7 +420,7 @@ function Organization() {
       }
 
       const response = await axios.get(
-        `https://api.hirerocks.com/api/zoho/api/zoho/active_users`,
+        `https://api.hirerocks.com/api/zoho/active_users`,
         {
           params: {
             accessToken,
