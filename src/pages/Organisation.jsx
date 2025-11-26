@@ -356,11 +356,14 @@ function Organization() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const username = email.split("@")[0];
-        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
-          UserName: username,
-          Password: organizationPass,
-          RememberMe: true,
-        });
+        const loginResponse = await axios.post(
+          `https://api.hirerocks.com/api/Account/Login`,
+          {
+            UserName: username,
+            Password: organizationPass,
+            RememberMe: true,
+          }
+        );
 
         let loginData = loginResponse.data;
         if (typeof loginData === "string") {
