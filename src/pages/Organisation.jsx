@@ -176,8 +176,10 @@ function Organization() {
       const selectedIds = selectedEmployees.map((e) => e.id);
 
       const response = await sendSelectedUsersToHireRocks(selectedIds);
+      alert("Users successfully created in HireRocks!");
 
       console.log("Users created successfully:", response);
+      setStep(5)
 
       // You can close modal or show success message here
     } catch (error) {
