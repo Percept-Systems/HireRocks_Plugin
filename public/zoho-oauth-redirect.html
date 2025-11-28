@@ -2,33 +2,37 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <title>Zoho OAuth Redirect</title>
-    <script>
-        (function () {
-            try {
-                var params = new URLSearchParams(window.location.search);
-                var accessToken = params.get("accessToken");
-                if (accessToken && window.opener) {
-                    window.opener.postMessage(
-                        {
-                            type: "ZOHO_TOKEN",
-                            token: accessToken,
-                        },
-                        window.location.origin
-                    );
-                }
-            } catch (e) {
-                console.error("Zoho redirect error:", e);
-            } finally {
-                window.close();
-            }
-        })();
-    </script>
 </head>
 
 <body>
-    Redirecting...
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken =
+                params.get("access_token") ||
+                new URLSearchParams(window.location.search).get("accessToken");
+
+            if (!accessToken) {
+                console.error("No access token found in redirect URL");
+                window.close();
+                return;
+            }
+
+            // Send token to parent window
+            window.opener.postMessage(
+                {
+                    type: "ZOHO_TOKEN",
+                    token: accessToken,
+                },
+                window.location.origin
+            );
+
+            // Close popup
+            window.close();
+        })();
+    </script>
 </body>
 
 </html>
