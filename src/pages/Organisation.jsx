@@ -169,6 +169,24 @@ function Organization() {
     };
   }, [platform, step]);
 
+  const handleDoneClick = async () => {
+    try {
+      setLoading(true); // start loading
+
+      const selectedIds = selectedEmployees.map((e) => e.id);
+
+      const response = await sendSelectedUsersToHireRocks(selectedIds);
+
+      console.log("Users created successfully:", response);
+
+      // You can close modal or show success message here
+    } catch (error) {
+      console.error("Error sending users:", error);
+    } finally {
+      setLoading(false); // stop loading
+    }
+  };
+
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
     try {
@@ -655,10 +673,16 @@ function Organization() {
             {/* Button next to dropdown */}
             <div className="flex items-center justify-between mt-3">
               <button
-                onClick={sendSelectedUsersToHireRocks}
-                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                onClick={handleDoneClick}
+                className={`px-4 py-2 rounded-md text-white 
+                 ${
+                   loading
+                     ? "bg-gray-400 cursor-not-allowed"
+                     : "bg-blue-500 hover:bg-blue-700"
+                 }
+               `}
               >
-                Done
+                {loading ? "Loading..." : "Done"}
               </button>
             </div>
           </div>
