@@ -3,6 +3,17 @@ import { useNavigate } from "react-router-dom";
 import EmpLogin from "../components/EmpLogin";
 import axios from "axios";
 import { useEffect } from "react";
+import {
+  loginToZoho,
+  attachZohoTokenListener,
+  getZohoAccessToken,
+  storeZohoAccessToken,
+} from "../integrations/zoho/zohoAuth.js";
+
+import {
+  fetchZohoUsers,
+  sendSelectedUsersToHireRocks,
+} from "../integrations/zoho/zohoApi.js";
 
 function Organization() {
   const navigate = useNavigate();
@@ -24,7 +35,6 @@ function Organization() {
   const [platform, setPlatform] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [zohoInfo, setZohoInfo] = useState(null);
   const [employeesList, setEmployeesList] = useState([]);
 
   const APP_URI = process.env.REACT_APP_API_URL;
@@ -65,229 +75,99 @@ function Organization() {
     }
   }, [platform]);
 
-  // LISTENER TO RECEIVE TOKEN FROM OAUTH POPUP
-  useEffect(() => {
-    function handleMessage(event) {
-      if (event.data?.type === "ZOHO_TOKEN") {
-        const token = event.data.token;
-        console.log("Received Zoho token from popup:", token);
+  // Helper: normalize Zoho users
 
-        localStorage.setItem("zoho_access_token", token);
+  const normalizeZohoUsers = (raw) => {
+    const records = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.users)
+      ? raw.users
+      : Array.isArray(raw?.data)
+      ? raw.data
+      : [];
 
-        fetchZohoUsers(token);
+    return records.map((u) => {
+      // Try many possible keys to be robust
+      const id = u.Id ?? u.id ?? u.userId;
+      const first = u.FirstName ?? u.first_name ?? u.firstName ?? "";
+      const last = u.LastName ?? u.last_name ?? u.lastName ?? "";
+      const nameFromFields = `${first} ${last}`.trim();
+      const name =
+        nameFromFields || u.Full_Name || u.full_name || u.Name || u.name || "";
+      const email = u.Email ?? u.email ?? u.work_email ?? "";
+      const role = u.Role ?? u.role ?? u.Profile ?? u.profile ?? "Member";
 
-        // No redirect required — we remain inside CRM iframe
-      }
-    }
+      return {
+        id,
+        name,
+        email,
+        role,
+        selected: false,
+      };
+    });
+  };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  // ZOHO OAuth Flow
-
+  // -------------------------------------------
+  // ZOHO Step 3 → OAuth popup + fetch & map users
+  // -------------------------------------------
   useEffect(() => {
     if (platform !== "zoho") return;
     if (step !== 3) return;
 
-    console.log("Zoho step3 user load triggered");
-
-    const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl =
-      params.get("accessToken") || params.get("access_token");
-
-    // Case 1: Token present in URL (ONLY happens when not inside CRM)
-    // This is only used by popup postMessage now.
-    if (tokenFromUrl) {
-      console.log(
-        "OAuth redirect token: (should only be in popup)",
-        tokenFromUrl
-      );
-      return;
-    }
-
-    // Case 2: Existing token
-    const storedToken = localStorage.getItem("zoho_access_token");
-    if (storedToken) {
-      console.log("Using stored Zoho access token");
-      fetchZohoUsers(storedToken);
-      return;
-    }
-
-    // Case 3: No token → login via popup
-    console.log("No Zoho token found — starting login...");
-    loginToZoho();
-  }, [platform, step]);
-
-  // loginToZoho()
-
-  const loginToZoho = () => {
-    console.log("Starting Zoho OAuth...");
-
-    const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
-    const redirectUri = process.env.REACT_APP_ZOHO_REDIRECT_URI;
-    const ZOHO_AUTH_DOMAIN = process.env.REACT_APP_ZOHO_AUTH_DOMAIN;
-
     const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
-    if (!clientId || !redirectUri || !ZOHO_AUTH_DOMAIN) {
-      console.error("Missing Zoho OAuth configuration.");
-      alert("Zoho configuration missing.");
-      return;
-    }
+    // 1) Listen for token from popup
+    const detach = attachZohoTokenListener(async (token) => {
+      try {
+        setLoading(true);
+        try {
+          storeZohoAccessToken(token);
+        } catch (e) {}
+        sessionStorage.setItem("zoho_access_token", token);
 
-    if (!hireRocksOrgId) {
-      console.error("hireRocksOrgId missing");
-      alert("Missing organisation id");
-      return;
-    }
+        const raw = await fetchZohoUsers(token, hireRocksOrgId);
 
-    // save CRM tab URL
-    localStorage.setItem("zoho_original_crm_url", window.location.href);
-
-    const scopes = [
-      "ZohoCRM.users.ALL",
-      "ZohoCRM.org.READ",
-      "ZohoCRM.modules.ALL",
-    ];
-
-    const authUrl = `${ZOHO_AUTH_DOMAIN}/oauth/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&scope=${encodeURIComponent(
-      scopes.join(",")
-    )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
-
-    // OPEN OAUTH IN POPUP, NOT SAME WINDOW
-    window.open(authUrl, "zoho_oauth", "width=600,height=700");
-  };
-
-  // Redirect page code (frontend)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const accessToken = params.get("accessToken");
-
-    if (accessToken && window.opener) {
-      console.log("Sending Zoho token back to CRM iframe...");
-
-      window.opener.postMessage(
-        {
-          type: "ZOHO_TOKEN",
-          token: accessToken,
-        },
-        "*"
-      );
-
-      window.close(); // close popup
-    }
-  }, []);
-
-  //  API to send selected users from zoho to hirerocks
-
-  const sendSelectedUsersToHireRocks = async () => {
-    try {
-      if (selectedEmployees.length === 0) {
-        alert("Please select at least one user.");
-        return;
+        const mapped = normalizeZohoUsers(raw);
+        setEmployeesList(mapped);
+      } catch (err) {
+        console.error("Token handler error:", err);
+        alert("Failed to fetch Zoho users.");
+      } finally {
+        setLoading(false);
       }
+    });
 
-      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
-      const accessToken = localStorage.getItem("access_token");
+    // 2) If token already exists → use it
+    const savedToken = getZohoAccessToken();
 
-      if (!accessToken || !hireRocksOrgId) {
-        alert("Missing authentication tokens.");
-        console.error({ accessToken, hireRocksOrgId });
-        return;
-      }
-
-      const ids = selectedEmployees.map((u) => u.id);
-
-      const body = {
-        ZohoUserIds: ids,
-      };
-
-      console.log("Sending to HireRocks:", body);
-
-      const response = await axios.post(
-        "https://api.hirerocks.com/api/zoho/create_hirerocks_users",
-        body,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-            hireRocksOrgId,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        alert("Users successfully created in HireRocks!");
-        console.log("HireRocks response:", response.data);
-        setStep(5);
-      } else {
-        alert("Unexpected response from HireRocks.");
-        console.warn("Response:", response);
-      }
-    } catch (error) {
-      console.error("Error sending users:", error);
-      alert("Failed to send selected users. Please try again.");
-    }
-  };
-
-  //  Salesforce Login + Fetch Users
-
-  useEffect(() => {
-    if (platform !== "salesforce") return;
-
-    console.log("Salesforce platform detected — initializing…");
-
-    const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl =
-      params.get("accessToken") || params.get("access_token");
-
-    // Case 1: Token came in URL (OAuth callback)
-    if (tokenFromUrl) {
-      console.log("OAuth redirect token received:", tokenFromUrl);
-      localStorage.setItem("sf_access_token", tokenFromUrl);
-      fetchSalesforceUsers(tokenFromUrl);
-      return;
+    if (savedToken) {
+      setLoading(true);
+      fetchZohoUsers(savedToken, hireRocksOrgId)
+        .then((raw) => {
+          const mapped = normalizeZohoUsers(raw);
+          setEmployeesList(mapped);
+        })
+        .catch((err) => {
+          console.warn("Saved Zoho token failed to fetch users:", err);
+          // token might be expired — clear and trigger login
+          sessionStorage.removeItem("zoho_access_token");
+          try {
+            storeZohoAccessToken(null);
+          } catch (e) {}
+          loginToZoho();
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // 3) No token → start OAuth popup
+      loginToZoho();
     }
 
-    // Case 2: Existing token stored
-    const storedToken = localStorage.getItem("sf_access_token");
-    if (storedToken) {
-      console.log("Using stored Salesforce session token");
-      fetchSalesforceUsers(storedToken);
-      return;
-    }
-
-    // Case 3: No token at all — start login
-    console.log("No Salesforce token — starting login…");
-    loginToSalesforce();
-  }, [platform]);
-
-  // Salesforce OAuth flow
-  const loginToSalesforce = () => {
-    console.log("Starting Salesforce OAuth...");
-
-    const clientId = process.env.REACT_APP_SF_CLIENT_ID;
-    const redirectUri = process.env.REACT_APP_SF_REDIRECT_URI;
-    const SF_LOGIN_URL = process.env.REACT_APP_SF_LOGIN_URL;
-
-    if (!clientId || !redirectUri || !SF_LOGIN_URL) {
-      console.error(" Missing Salesforce config variables.");
-      alert("Salesforce configuration missing.");
-      return;
-    }
-
-    // Build AUTH URL dynamically from config
-    const authorizeUrl = `${SF_LOGIN_URL}/services/oauth2/authorize`;
-
-    const authUrl = `${authorizeUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&scope=api%20refresh_token`;
-
-    window.location.href = authUrl;
-  };
+    return () => {
+      try {
+        detach();
+      } catch (e) {}
+    };
+  }, [platform, step]);
 
   // Handle View Click (Step 1 for Viewing Organization)
   const handleViewClick = async () => {
@@ -341,7 +221,7 @@ function Organization() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://api.hirerocks.com/api/Account/VerifyEmailAddress`,
+        `${APP_URI}/api/Account/VerifyEmailAddress`,
         {
           params: { emailVerificationCode: mailContent },
         }
@@ -356,14 +236,11 @@ function Organization() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const username = email.split("@")[0];
-        const loginResponse = await axios.post(
-          `https://api.hirerocks.com/api/Account/Login`,
-          {
-            UserName: username,
-            Password: organizationPass,
-            RememberMe: true,
-          }
-        );
+        const loginResponse = await axios.post(`${APP_URI}/api/Account/Login`, {
+          UserName: username,
+          Password: organizationPass,
+          RememberMe: true,
+        });
 
         let loginData = loginResponse.data;
         if (typeof loginData === "string") {
@@ -374,9 +251,6 @@ function Organization() {
           localStorage.setItem("access_token", loginData.access_token);
           alert("Login successful!");
           setStep(3);
-          await loginToZoho();
-
-          await fetchZohoUsers();
           setLoading(false);
         } else {
           setLoading(false);
@@ -391,130 +265,6 @@ function Organization() {
       setLoading(false);
       console.error("Error verifying OTP:", error);
       alert("Something went wrong. Please try again.");
-    }
-  };
-
-  //  Function to fetch Salesforce users
-  const fetchSalesforceUsers = async (accessToken) => {
-    if (!accessToken) {
-      console.error("No access token provided to fetch Salesforce users.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("Fetching Salesforce users with access token:", accessToken);
-
-      // Corrected API URL + Bearer auth
-      const response = await axios.get(
-        `https://trackerapi.hirerocks.com/api/tracker/salesforce/users`,
-        {
-          params: { accessToken },
-        }
-      );
-
-      if (response.status === 200 && response.data) {
-        console.log("Salesforce users fetched:", response.data);
-
-        const records = Array.isArray(response.data?.records)
-          ? response.data.records
-          : Array.isArray(response.data)
-          ? response.data
-          : [];
-
-        const users = records.map((u) => ({
-          id: u.Id,
-          name: u.Name,
-          email: u.Email || "",
-          role: u.IsActive ? "Active" : "Inactive",
-          selected: false,
-        }));
-
-        setEmployeesList(users);
-      } else {
-        console.warn("Unexpected Salesforce user response:", response);
-      }
-    } catch (error) {
-      console.error("Error fetching Salesforce users:", error);
-
-      // Force login again if token expired
-      if (error.response?.status === 401) {
-        console.warn("Token expired. Forcing Salesforce login again.");
-        localStorage.removeItem("sf_access_token");
-        loginToSalesforce();
-        return;
-      }
-
-      alert("Failed to fetch Salesforce users. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // function to fetch zoho users
-
-  const fetchZohoUsers = async (accessToken) => {
-    if (!accessToken) {
-      console.error("No Zoho access token provided.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("Fetching Zoho users with access token:", accessToken);
-
-      const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
-
-      if (!hireRocksOrgId) {
-        console.error("hireRocksOrgId not found in localStorage");
-        alert("Organisation context missing.");
-        return;
-      }
-
-      const response = await axios.get(
-        `https://api.hirerocks.com/api/zoho/active_users`,
-        {
-          params: {
-            accessToken,
-            hireRocksOrgId,
-          },
-        }
-      );
-
-      if (response.status === 200 && response.data) {
-        console.log("Zoho users fetched:", response.data);
-
-        const records = Array.isArray(response.data)
-          ? response.data
-          : Array.isArray(response.data?.users)
-          ? response.data.users
-          : [];
-
-        const users = records.map((u) => ({
-          id: u.Id,
-          name: `${u.FirstName || ""} ${u.LastName || ""}`.trim(),
-          email: u.Email || "",
-          role: u.Role || "",
-          selected: false,
-        }));
-
-        setEmployeesList(users);
-      } else {
-        console.warn("Unexpected Zoho response:", response);
-      }
-    } catch (error) {
-      console.error("Error fetching Zoho users:", error);
-
-      if (error.response?.status === 401) {
-        console.warn("Zoho token expired — forcing login again");
-        localStorage.removeItem("zoho_access_token");
-        loginToZoho();
-        return;
-      }
-
-      alert("Failed to fetch Zoho users. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -550,16 +300,13 @@ function Organization() {
       setLoading(true);
       setorgError(false);
       try {
-        const response = await axios.post(
-          `https://api.hirerocks.com/PostOrganization`,
-          {
-            Email: email,
-            Password: organizationPass,
-            OrganizationTitle: organizationName,
-            IsRegisterationSuccessFull: true,
-            Platform: platform,
-          }
-        );
+        const response = await axios.post(`${APP_URI}/PostOrganization`, {
+          Email: email,
+          Password: organizationPass,
+          OrganizationTitle: organizationName,
+          IsRegisterationSuccessFull: true,
+          Platform: platform,
+        });
         console.log(response);
         if (response.status == 200) {
           localStorage.setItem("hireRocksOrgId", response.data.organizationId);

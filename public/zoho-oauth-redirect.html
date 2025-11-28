@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Zoho OAuth Redirect</title>
+    <script>
+        (function () {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var accessToken = params.get("accessToken");
+                if (accessToken && window.opener) {
+                    window.opener.postMessage(
+                        {
+                            type: "ZOHO_TOKEN",
+                            token: accessToken,
+                        },
+                        window.location.origin
+                    );
+                }
+            } catch (e) {
+                console.error("Zoho redirect error:", e);
+            } finally {
+                window.close();
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    Redirecting...
+</body>
+
+</html>
