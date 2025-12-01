@@ -32,13 +32,13 @@
             else if (platform === "salesforce") type = "SF_TOKEN";
             else type = "OAUTH_TOKEN";
 
-            // Send token to parent window
+            // IMPORTANT FIX: Allow Salesforce opener to receive the message
             window.opener.postMessage(
                 {
                     type,
                     token: accessToken,
                 },
-                window.location.origin
+                "*"
             );
 
             window.close();
