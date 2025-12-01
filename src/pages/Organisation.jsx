@@ -107,9 +107,9 @@ function Organization() {
     });
   };
 
-  // -------------------------------------------
+
   // ZOHO Step 3 → OAuth popup + fetch & map users
-  // -------------------------------------------
+
   useEffect(() => {
     if (platform !== "zoho") return;
     if (step !== 3) return;
