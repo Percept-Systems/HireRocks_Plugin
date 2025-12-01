@@ -1,20 +1,3 @@
-import { useEffect } from "react";
-useEffect(() => {
-  // Extract Salesforce target_origin from URL hash
-  const url = new URL(window.location.href);
-
-  let targetOrigin = "*";
-
-  if (url.hash.includes("target_origin=")) {
-    targetOrigin = decodeURIComponent(
-      url.hash.split("target_origin=")[1].split("&")[0]
-    );
-  }
-
-  localStorage.setItem("salesforce_target_origin", targetOrigin);
-  console.log("Saved Salesforce target origin:", targetOrigin);
-}, []);
-
 export function loginToSalesforce() {
   console.log("Starting Salesforce OAuth...");
 
