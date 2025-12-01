@@ -3,16 +3,23 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Zoho OAuth Redirect</title>
+    <title>OAuth Redirect</title>
 </head>
 
 <body>
     <script>
         (function () {
-            const params = new URLSearchParams(window.location.hash.substring(1));
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const searchParams = new URLSearchParams(window.location.search);
+
             const accessToken =
-                params.get("access_token") ||
-                new URLSearchParams(window.location.search).get("accessToken");
+                hashParams.get("access_token") ||
+                searchParams.get("accessToken");
+
+            const platform =
+                searchParams.get("platform") ||
+                searchParams.get("source") ||
+                "zoho";
 
             if (!accessToken) {
                 console.error("No access token found in redirect URL");
@@ -20,16 +27,20 @@
                 return;
             }
 
+            let type = "";
+            if (platform === "zoho") type = "ZOHO_TOKEN";
+            else if (platform === "salesforce") type = "SF_TOKEN";
+            else type = "OAUTH_TOKEN";
+
             // Send token to parent window
             window.opener.postMessage(
                 {
-                    type: "ZOHO_TOKEN",
+                    type,
                     token: accessToken,
                 },
                 window.location.origin
             );
 
-            // Close popup
             window.close();
         })();
     </script>
