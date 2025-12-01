@@ -80,22 +80,6 @@ function Organization() {
     }
   }, [platform]);
 
-  useEffect(() => {
-    // Extract Salesforce target_origin from URL hash
-    const url = new URL(window.location.href);
-
-    let targetOrigin = "*";
-
-    if (url.hash.includes("target_origin=")) {
-      targetOrigin = decodeURIComponent(
-        url.hash.split("target_origin=")[1].split("&")[0]
-      );
-    }
-
-    localStorage.setItem("salesforce_target_origin", targetOrigin);
-    console.log("Saved Salesforce target origin:", targetOrigin);
-  }, []);
-
   // Helper: normalize Zoho users
 
   const normalizeUsers = (raw) => {
@@ -193,6 +177,9 @@ function Organization() {
 
     const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
+    // --------------------------
+    // Z O H O   I N T E G R A T I O N
+    // --------------------------
     if (platform === "zoho") {
       // 1) Listen for token from popup
       const detach = attachZohoTokenListener(async (token) => {
@@ -251,6 +238,9 @@ function Organization() {
       };
     }
 
+    // --------------------------
+    // S A L E S F O R C E   I N T E G R A T I O N
+    // --------------------------
     if (platform === "salesforce") {
       // 1) Listen for token from popup
       const detach = attachSalesforceTokenListener(async (token) => {
