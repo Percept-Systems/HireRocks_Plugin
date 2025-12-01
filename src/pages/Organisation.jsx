@@ -9,7 +9,13 @@ import {
   getZohoAccessToken,
   storeZohoAccessToken,
 } from "../integrations/zoho/zohoAuth.js";
-
+import {
+  loginToSalesforce,
+  attachSalesforceTokenListener,
+  storeSalesforceAccessToken,
+  getSalesforceAccessToken,
+} from "../integrations/salesforce/salesforceAuth";
+import { fetchSalesforceUsers } from "../integrations/salesforce/salesforceApi";
 import {
   fetchZohoUsers,
   sendSelectedUsersToHireRocks,
@@ -63,7 +69,6 @@ function Organization() {
 
   useEffect(() => {
     if (platform !== "zoho" && platform !== "salesforce") {
-      // create 100 dummy users
       const dummyUsers = Array.from({ length: 100 }).map((_, i) => ({
         id: `unknown-${i + 1}`,
         name: `User ${i + 1}`,
@@ -77,7 +82,7 @@ function Organization() {
 
   // Helper: normalize Zoho users
 
-  const normalizeZohoUsers = (raw) => {
+  const normalizeUsers = (raw) => {
     const records = Array.isArray(raw)
       ? raw
       : Array.isArray(raw?.users)
@@ -87,7 +92,6 @@ function Organization() {
       : [];
 
     return records.map((u) => {
-      // Try many possible keys to be robust
       const id = u.Id ?? u.id ?? u.userId;
       const first = u.FirstName ?? u.first_name ?? u.firstName ?? "";
       const last = u.LastName ?? u.last_name ?? u.lastName ?? "";
@@ -107,71 +111,192 @@ function Organization() {
     });
   };
 
-
   // ZOHO Step 3 → OAuth popup + fetch & map users
 
+  // useEffect(() => {
+  //   if (platform !== "zoho") return;
+  //   if (step !== 3) return;
+
+  //   const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+  //   // 1) Listen for token from popup
+  //   const detach = attachZohoTokenListener(async (token) => {
+  //     try {
+  //       setLoading(true);
+  //       try {
+  //         storeZohoAccessToken(token);
+  //       } catch (e) {}
+  //       sessionStorage.setItem("zoho_access_token", token);
+
+  //       const raw = await fetchZohoUsers(token, hireRocksOrgId);
+
+  //       const mapped = normalizeZohoUsers(raw);
+  //       setEmployeesList(mapped);
+  //     } catch (err) {
+  //       console.error("Token handler error:", err);
+  //       alert("Failed to fetch Zoho users.");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   });
+
+  //   // 2) If token already exists → use it
+  //   const savedToken = getZohoAccessToken();
+
+  //   if (savedToken) {
+  //     setLoading(true);
+  //     fetchZohoUsers(savedToken, hireRocksOrgId)
+  //       .then((raw) => {
+  //         const mapped = normalizeZohoUsers(raw);
+  //         setEmployeesList(mapped);
+  //       })
+  //       .catch((err) => {
+  //         console.warn("Saved Zoho token failed to fetch users:", err);
+  //         // token might be expired — clear and trigger login
+  //         sessionStorage.removeItem("zoho_access_token");
+  //         try {
+  //           storeZohoAccessToken(null);
+  //         } catch (e) {}
+  //         loginToZoho();
+  //       })
+  //       .finally(() => setLoading(false));
+  //   } else {
+  //     // 3) No token → start OAuth popup
+  //     loginToZoho();
+  //   }
+
+  //   return () => {
+  //     try {
+  //       detach();
+  //     } catch (e) {}
+  //   };
+  // }, [platform, step]);
+
   useEffect(() => {
-    if (platform !== "zoho") return;
     if (step !== 3) return;
 
     const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
-    // 1) Listen for token from popup
-    const detach = attachZohoTokenListener(async (token) => {
-      try {
-        setLoading(true);
+    if (platform === "zoho") {
+      // 1) Listen for token from popup
+      const detach = attachZohoTokenListener(async (token) => {
         try {
-          storeZohoAccessToken(token);
-        } catch (e) {}
-        sessionStorage.setItem("zoho_access_token", token);
+          setLoading(true);
 
-        const raw = await fetchZohoUsers(token, hireRocksOrgId);
-
-        const mapped = normalizeZohoUsers(raw);
-        setEmployeesList(mapped);
-      } catch (err) {
-        console.error("Token handler error:", err);
-        alert("Failed to fetch Zoho users.");
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    // 2) If token already exists → use it
-    const savedToken = getZohoAccessToken();
-
-    if (savedToken) {
-      setLoading(true);
-      fetchZohoUsers(savedToken, hireRocksOrgId)
-        .then((raw) => {
-          const mapped = normalizeZohoUsers(raw);
-          setEmployeesList(mapped);
-        })
-        .catch((err) => {
-          console.warn("Saved Zoho token failed to fetch users:", err);
-          // token might be expired — clear and trigger login
-          sessionStorage.removeItem("zoho_access_token");
           try {
-            storeZohoAccessToken(null);
+            storeZohoAccessToken(token);
           } catch (e) {}
-          loginToZoho();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      // 3) No token → start OAuth popup
-      loginToZoho();
+
+          sessionStorage.setItem("zoho_access_token", token);
+
+          const raw = await fetchZohoUsers(token, hireRocksOrgId);
+          const mapped = normalizeUsers(raw);
+          setEmployeesList(mapped);
+        } catch (err) {
+          console.error("Zoho token handler error:", err);
+          alert("Failed to fetch Zoho users.");
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      // 2) If saved token exists → use it
+      const savedToken = getZohoAccessToken();
+
+      if (savedToken) {
+        setLoading(true);
+        fetchZohoUsers(savedToken, hireRocksOrgId)
+          .then((raw) => {
+            const mapped = normalizeUsers(raw);
+            setEmployeesList(mapped);
+          })
+          .catch((err) => {
+            console.warn("Saved Zoho token failed to fetch users:", err);
+
+            // Clear expired token
+            sessionStorage.removeItem("zoho_access_token");
+            try {
+              storeZohoAccessToken(null);
+            } catch (e) {}
+
+            // Trigger login popup
+            loginToZoho();
+          })
+          .finally(() => setLoading(false));
+      } else {
+        // 3) No token → start OAuth popup
+        loginToZoho();
+      }
+
+      return () => {
+        try {
+          detach();
+        } catch (e) {}
+      };
     }
 
-    return () => {
-      try {
-        detach();
-      } catch (e) {}
-    };
+    if (platform === "salesforce") {
+      // 1) Listen for token from popup
+      const detach = attachSalesforceTokenListener(async (token) => {
+        try {
+          setLoading(true);
+
+          try {
+            storeSalesforceAccessToken(token);
+          } catch (e) {}
+
+          sessionStorage.setItem("salesforce_access_token", token);
+
+          const raw = await fetchSalesforceUsers(token, hireRocksOrgId);
+          const mapped = normalizeUsers(raw);
+          setEmployeesList(mapped);
+        } catch (err) {
+          console.error("Salesforce token handler error:", err);
+          alert("Failed to fetch Salesforce users.");
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      // 2) If saved token exists → use it
+      const savedToken = getSalesforceAccessToken();
+
+      if (savedToken) {
+        setLoading(true);
+        fetchSalesforceUsers(savedToken, hireRocksOrgId)
+          .then((raw) => {
+            const mapped = normalizeUsers(raw);
+            setEmployeesList(mapped);
+          })
+          .catch((err) => {
+            console.warn("Saved Salesforce token failed to fetch users:", err);
+
+            // Clear expired token
+            sessionStorage.removeItem("salesforce_access_token");
+            try {
+              storeSalesforceAccessToken(null);
+            } catch (e) {}
+
+            // Trigger login popup
+            loginToSalesforce();
+          })
+          .finally(() => setLoading(false));
+      } else {
+        // 3) No token → start OAuth popup
+        loginToSalesforce();
+      }
+
+      return () => {
+        try {
+          detach();
+        } catch (e) {}
+      };
+    }
   }, [platform, step]);
 
   const handleDoneClick = async () => {
     try {
-      setLoading(true); // start loading
+      setLoading(true);
 
       const selectedIds = selectedEmployees.map((e) => e.id);
 
@@ -179,13 +304,11 @@ function Organization() {
       alert("Users successfully created in HireRocks!");
 
       console.log("Users created successfully:", response);
-      setStep(5)
-
-      // You can close modal or show success message here
+      setStep(5);
     } catch (error) {
       console.error("Error sending users:", error);
     } finally {
-      setLoading(false); // stop loading
+      setLoading(false);
     }
   };
 
