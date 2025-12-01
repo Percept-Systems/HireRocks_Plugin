@@ -39,11 +39,13 @@ export function loginToSalesforce() {
 
 export function attachSalesforceTokenListener(onToken) {
   function handler(event) {
-    const allowedOrigin =
-      localStorage.getItem("salesforce_target_origin") ||
-      window.location.origin;
+    const salesforceOrigin = localStorage.getItem("salesforce_target_origin");
 
-    if (event.origin !== allowedOrigin) {
+    const appOrigin = window.location.origin;
+
+    const allowedOrigins = [salesforceOrigin, appOrigin].filter(Boolean);
+
+    if (!allowedOrigins.includes(event.origin)) {
       console.warn("Blocked postMessage from:", event.origin);
       return;
     }
