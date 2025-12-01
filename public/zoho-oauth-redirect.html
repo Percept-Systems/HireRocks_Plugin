@@ -33,13 +33,13 @@
             else type = "OAUTH_TOKEN";
 
             // IMPORTANT FIX: Allow Salesforce opener to receive the message
+            const origin = searchParams.get("origin") || "*";
+
             window.opener.postMessage(
-                {
-                    type,
-                    token: accessToken,
-                },
-                "*"
+                { type, token: accessToken },
+                origin
             );
+
 
             window.close();
         })();

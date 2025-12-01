@@ -1,3 +1,19 @@
+useEffect(() => {
+  // Extract Salesforce target_origin from URL hash
+  const url = new URL(window.location.href);
+
+  let targetOrigin = "*";
+
+  if (url.hash.includes("target_origin=")) {
+    targetOrigin = decodeURIComponent(
+      url.hash.split("target_origin=")[1].split("&")[0]
+    );
+  }
+
+  localStorage.setItem("salesforce_target_origin", targetOrigin);
+  console.log("Saved Salesforce target origin:", targetOrigin);
+}, []);
+
 export function loginToSalesforce() {
   console.log("Starting Salesforce OAuth...");
 
@@ -6,20 +22,26 @@ export function loginToSalesforce() {
   const domain = process.env.REACT_APP_SF_AUTH_DOMAIN;
   const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
+  const targetOrigin = localStorage.getItem("salesforce_target_origin") || "*";
+
   if (!clientId || !redirectUri || !domain || !hireRocksOrgId) {
     console.error("Missing Salesforce OAuth configuration.");
     alert("Salesforce configuration missing.");
     return;
   }
 
-  // save CRM tab URL
+  // Save CRM Tab URL
   localStorage.setItem("sf_original_crm_url", window.location.href);
 
+  // Add origin to redirectUri
+  const redirectWithOrigin = `${redirectUri}?origin=${encodeURIComponent(
+    targetOrigin
+  )}`;
+
   const authUrl = `${domain}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri
+    redirectWithOrigin
   )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
-  // OPEN OAUTH IN POPUP, NOT SAME WINDOW
   const popup = window.open(
     authUrl,
     "salesforce_oauth",
@@ -33,7 +55,14 @@ export function loginToSalesforce() {
 
 export function attachSalesforceTokenListener(onToken) {
   function handler(event) {
-    if (event.origin !== window.location.origin) return;
+    const allowedOrigin =
+      localStorage.getItem("salesforce_target_origin") ||
+      window.location.origin;
+
+    if (event.origin !== allowedOrigin) {
+      console.warn("Blocked postMessage from:", event.origin);
+      return;
+    }
 
     if (event.data?.type === "SF_TOKEN") {
       onToken(event.data.token);
