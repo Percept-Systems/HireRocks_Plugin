@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 useEffect(() => {
   // Extract Salesforce target_origin from URL hash
   const url = new URL(window.location.href);
