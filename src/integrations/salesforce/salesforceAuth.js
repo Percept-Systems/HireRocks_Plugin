@@ -12,11 +12,8 @@ export function loginToSalesforce() {
     return;
   }
 
-  // save CRM tab URL
-  const origin = window.location.origin;
-
   const authUrl = `${domain}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri + "?platform=salesforce&origin=" + origin
+    redirectUri
   )}&prompt=consent&state=${hireRocksOrgId}`;
 
   // OPEN OAUTH IN POPUP, NOT SAME WINDOW
