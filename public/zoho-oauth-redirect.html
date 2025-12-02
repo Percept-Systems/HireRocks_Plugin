@@ -12,42 +12,34 @@
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const searchParams = new URLSearchParams(window.location.search);
 
-            // ZOHO (Implicit flow) → access_token
             const accessToken =
                 hashParams.get("access_token") ||
                 searchParams.get("accessToken");
 
-            // SALESFORCE (Auth code flow) → code
-            const authCode = searchParams.get("code");
-
             const platform =
                 searchParams.get("platform") ||
                 searchParams.get("source") ||
-                (authCode ? "salesforce" : "zoho");
+                "zoho";
 
-            let type = "";
-            let tokenToSend = "";
-
-            if (platform === "zoho" && accessToken) {
-                type = "ZOHO_TOKEN";
-                tokenToSend = accessToken;
-            }
-            else if (platform === "salesforce" && authCode) {
-                type = "SF_CODE"; // IMPORTANT FIX
-                tokenToSend = authCode;
-            }
-            else {
-                console.error("No valid token or code found for OAuth.");
+            if (!accessToken) {
+                console.error("No access token found in redirect URL");
                 window.close();
                 return;
             }
 
-            const origin = searchParams.get("origin") || window.location.origin;
+            let type = "";
+            if (platform === "zoho") type = "ZOHO_TOKEN";
+            else if (platform === "salesforce") type = "SF_TOKEN";
+            else type = "OAUTH_TOKEN";
+
+            // IMPORTANT FIX: Allow Salesforce opener to receive the message
+            const origin = searchParams.get("origin") || "*";
 
             window.opener.postMessage(
-                { type, token: tokenToSend },
+                { type, token: accessToken },
                 origin
             );
+
 
             window.close();
         })();
