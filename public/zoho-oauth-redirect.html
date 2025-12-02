@@ -1,61 +1,38 @@
-<!DOCTYPE html>
-<html>
+<script>
+    (function () {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
 
-<head>
-    <meta charset="UTF-8" />
-    <title>OAuth Redirect</title>
-</head>
+        // Salesforce sends CODE, not TOKEN
+        const accessToken =
+            hashParams.get("access_token") ||
+            searchParams.get("accessToken") ||
+            searchParams.get("code"); // <-- IMPORTANT FIX
 
-<body>
-    <script>
-        (function () {
-            const url = new URL(window.location.href);
+        const platform =
+            searchParams.get("platform") ||
+            searchParams.get("source") ||
+            "zoho";
 
-            // 1) Detect platform
-            const platform = url.searchParams.get("platform") || "zoho"; // default to Zoho
-
-            // 2) Get target origin for postMessage
-            const targetOrigin =
-                url.searchParams.get("origin") ||
-                (url.hash.includes("target_origin=")
-                    ? decodeURIComponent(url.hash.split("target_origin=")[1].split("&")[0])
-                    : "*");
-
-            // 3) Extract token/code based on platform
-            let data = null;
-
-            if (platform === "zoho") {
-                // Zoho puts token in hash
-                const hashParams = new URLSearchParams(url.hash.substring(1));
-                const token = hashParams.get("access_token") || url.searchParams.get("accessToken");
-                if (!token) {
-                    console.error("No Zoho access token found");
-                    return window.close();
-                }
-                data = { type: "ZOHO_TOKEN", token };
-            } else if (platform === "salesforce") {
-                // Salesforce puts code in query string
-                const code = url.searchParams.get("code");
-                const state = url.searchParams.get("state");
-                if (!code) {
-                    console.error("No Salesforce code found");
-                    return window.close();
-                }
-                data = { type: "SF_CODE", code, state };
-            } else {
-                console.error("Unknown platform:", platform);
-                return window.close();
-            }
-
-            // 4) Send token/code back to opener
-            if (window.opener) {
-                window.opener.postMessage(data, targetOrigin);
-            }
-
-            // 5) Close popup
+        if (!accessToken) {
+            console.error("No token/code found in redirect URL");
             window.close();
-        })();
-    </script>
-</body>
+            return;
+        }
 
-</html>
+        let type = "";
+        if (platform === "zoho") type = "ZOHO_TOKEN";
+        else if (platform === "salesforce") type = "SF_TOKEN";  // returns CODE
+        else type = "OAUTH_TOKEN";
+
+        const origin = searchParams.get("origin") || "*";
+
+        // Send message to opener (CRM TAB)
+        window.opener.postMessage(
+            { type, token: accessToken },
+            origin
+        );
+
+        window.close();
+    })();
+</script>
