@@ -251,7 +251,7 @@ function Organization() {
             storeSalesforceAccessToken(token);
           } catch (e) {}
 
-          sessionStorage.setItem("salesforce_access_token", token);
+          sessionStorage.setItem("sf_access_token", token);
 
           const raw = await fetchSalesforceUsers(token, hireRocksOrgId);
           const mapped = normalizeUsers(raw);
@@ -278,7 +278,7 @@ function Organization() {
             console.warn("Saved Salesforce token failed to fetch users:", err);
 
             // Clear expired token
-            sessionStorage.removeItem("salesforce_access_token");
+            sessionStorage.removeItem("sf_access_token");
             try {
               storeSalesforceAccessToken(null);
             } catch (e) {}
