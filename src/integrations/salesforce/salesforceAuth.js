@@ -12,9 +12,12 @@ export function loginToSalesforce() {
     return;
   }
 
+  // save CRM tab URL
+  localStorage.setItem("sf_original_crm_url", window.location.href);
+
   const authUrl = `${domain}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
     redirectUri
-  )}&prompt=consent&state=${hireRocksOrgId}`;
+  )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
 
   // OPEN OAUTH IN POPUP, NOT SAME WINDOW
   const popup = window.open(
