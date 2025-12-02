@@ -35,8 +35,8 @@ export function attachSalesforceTokenListener(onToken) {
   function handler(event) {
     if (event.origin !== window.location.origin) return;
 
-    if (event.data?.type === "SF_TOKEN") {
-      onToken(event.data.token);
+    if (event.data?.type === "SF_CODE") {
+      onToken(event.data.token); // this is the "code"
     }
   }
 
