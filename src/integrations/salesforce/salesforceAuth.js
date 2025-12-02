@@ -2,7 +2,7 @@ export function loginToSalesforce() {
   console.log("Starting Salesforce OAuth...");
 
   const clientId = process.env.REACT_APP_SF_CLIENT_ID;
-  const redirectUri = process.env.REACT_APP_SF_REDIRECT_URI; // Points to unified oauth-redirect.html
+  const redirectUri = process.env.REACT_APP_SF_REDIRECT_URI;
   const domain = process.env.REACT_APP_SF_AUTH_DOMAIN;
   const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
@@ -12,25 +12,14 @@ export function loginToSalesforce() {
     return;
   }
 
-  // 1) Save CRM tab URL
-  localStorage.setItem("sf_original_crm_url", window.location.href);
+  // save CRM tab URL
+  const origin = window.location.origin;
 
-  // 2) Get Salesforce target origin from URL hash (Canvas iframe)
-  const url = new URL(window.location.href);
-  const targetOrigin = url.hash.includes("target_origin=")
-    ? decodeURIComponent(url.hash.split("target_origin=")[1].split("&")[0])
-    : "*";
-
-  localStorage.setItem("salesforce_target_origin", targetOrigin);
-  console.log("Saved Salesforce target origin:", targetOrigin);
-
-  // 3) Build OAuth URL with platform + origin
   const authUrl = `${domain}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri +
-      `?platform=salesforce&origin=${encodeURIComponent(targetOrigin)}`
-  )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
+    redirectUri + "?platform=salesforce&origin=" + origin
+  )}&prompt=consent&state=${hireRocksOrgId}`;
 
-  // 4) OPEN OAUTH IN POPUP, NOT SAME WINDOW
+  // OPEN OAUTH IN POPUP, NOT SAME WINDOW
   const popup = window.open(
     authUrl,
     "salesforce_oauth",
