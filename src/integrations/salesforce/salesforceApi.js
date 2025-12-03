@@ -22,3 +22,29 @@ export async function fetchSalesforceUsers(accessToken, hireRocksOrgId) {
   if (Array.isArray(data?.users)) return data.users;
   return [];
 }
+
+export async function sendSalesforceUsersToHireRocks(selectedIds) {
+  const token = localStorage.getItem("access_token");
+  const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
+
+  if (!token || !hireRocksOrgId) {
+    throw new Error("Missing HireRocks auth token or org id.");
+  }
+
+  const url = `${BASE_URL}/create_hirerocks_users`;
+
+  const res = await axios.post(
+    url,
+    { SalesforceUserIds: selectedIds },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        hireRocksOrgId,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return res.data;
+}
+
