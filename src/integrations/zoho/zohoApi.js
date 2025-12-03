@@ -24,7 +24,7 @@ export async function fetchZohoUsers(accessToken, hireRocksOrgId) {
 }
 
 // Create HireRocks Users from Selected Zoho Users
-export async function sendSelectedUsersToHireRocks(selectedIds) {
+export async function sendZohoUsersToHireRocks(selectedIds) {
   const token = localStorage.getItem("access_token");
   const hireRocksOrgId = localStorage.getItem("hireRocksOrgId");
 
