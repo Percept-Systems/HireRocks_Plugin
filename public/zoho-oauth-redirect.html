@@ -9,37 +9,59 @@
 <body>
     <script>
         (function () {
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const searchParams = new URLSearchParams(window.location.search);
 
-            const accessToken =
-                hashParams.get("access_token") ||
-                searchParams.get("accessToken");
+            // Extract access token from hash or query string
+            function getAccessToken() {
+                const hash = new URLSearchParams(location.hash.substring(1));
+                const query = new URLSearchParams(location.search);
+                return hash.get("access_token") || query.get("accessToken");
+            }
 
-            const platform =
-                searchParams.get("platform") ||
-                searchParams.get("source") ||
-                "zoho";
+            // Detect which platform token belongs to
+            function getPlatform() {
+                const query = new URLSearchParams(location.search);
+                return query.get("platform") || query.get("source") || "zoho";
+            }
 
-            if (!accessToken) {
-                console.error("No access token found in redirect URL");
+            // Get parent window’s origin from query param
+            function getParentOrigin() {
+                const query = new URLSearchParams(location.search);
+                return query.get("origin");  // strict whitelisting
+            }
+
+            // Map platform → message type
+            function mapType(platform) {
+                const mapping = {
+                    zoho: "ZOHO_TOKEN",
+                    salesforce: "SF_TOKEN",
+                };
+                return mapping[platform] || "OAUTH_TOKEN";
+            }
+
+            const token = getAccessToken();
+            const platform = getPlatform();
+            const parentOrigin = getParentOrigin();
+
+            if (!token) {
+                console.error("No access token found");
                 window.close();
                 return;
             }
 
-            let type = "";
-            if (platform === "zoho") type = "ZOHO_TOKEN";
-            else if (platform === "salesforce") type = "SF_TOKEN";
-            else type = "OAUTH_TOKEN";
+            if (!parentOrigin) {
+                console.error("Missing origin parameter. Token NOT sent.");
+                window.close();
+                return;
+            }
 
-            // IMPORTANT FIX: Allow Salesforce opener to receive the message
-            const origin = searchParams.get("origin") || "*";
-
+            // Send token to parent window securely
             window.opener.postMessage(
-                { type, token: accessToken },
-                origin
+                {
+                    type: mapType(platform),
+                    token
+                },
+                parentOrigin
             );
-
 
             window.close();
         })();
