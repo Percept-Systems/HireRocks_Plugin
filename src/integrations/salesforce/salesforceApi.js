@@ -47,4 +47,3 @@ export async function sendSalesforceUsersToHireRocks(selectedIds) {
 
   return res.data;
 }
-
