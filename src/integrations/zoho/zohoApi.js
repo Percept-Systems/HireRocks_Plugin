@@ -11,8 +11,8 @@ export async function fetchZohoUsers(accessToken, hireRocksOrgId) {
   const url = `${BASE_URL}/active_users`;
 
   const res = await axios.get(url, {
-    params: {
-      accessToken,
+    headers: {
+      "ZOHO-TOKEN": accessToken,
       hireRocksOrgId,
     },
   });

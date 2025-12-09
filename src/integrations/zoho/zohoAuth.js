@@ -36,11 +36,27 @@ export function loginToZoho() {
 }
 
 export function attachZohoTokenListener(onToken) {
+  const allowedOrigin =
+    process.env.REACT_APP_REDIRECT_ORIGIN || window.location.origin;
+
   function handler(event) {
-    if (event.origin !== window.location.origin) return;
-    if (event.data?.type === "ZOHO_TOKEN") onToken(event.data.token);
+    // Security: Only accept messages from trusted redirect origin
+    if (event.origin !== allowedOrigin) {
+      console.warn("Blocked message from untrusted origin:", event.origin);
+      return;
+    }
+
+    if (event.data?.type === "ZOHO_TOKEN") {
+      onToken(event.data.token);
+    }
+
+    if (event.data?.type === "ZOHO_CODE") {
+      onToken(event.data.code);
+    }
   }
+
   window.addEventListener("message", handler);
+
   return () => window.removeEventListener("message", handler);
 }
 
