@@ -11,8 +11,8 @@ export async function fetchSalesforceUsers(accessToken, hireRocksOrgId) {
   const url = `${BASE_URL}/users`;
 
   const res = await axios.get(url, {
-    params: {
-      accessToken,
+    headers: {
+      "SF-TOKEN": accessToken,
       hireRocksOrgId,
     },
   });

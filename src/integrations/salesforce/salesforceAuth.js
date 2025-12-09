@@ -12,14 +12,23 @@ export function loginToSalesforce() {
     return;
   }
 
-  // save CRM tab URL
+  // Save CRM tab URL
   localStorage.setItem("sf_original_crm_url", window.location.href);
 
-  const authUrl = `${domain}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri
-  )}&access_type=offline&prompt=consent&state=${hireRocksOrgId}`;
+  const scope = encodeURIComponent(
+    "refresh_token api openid email offline_access"
+  );
 
-  // OPEN OAUTH IN POPUP, NOT SAME WINDOW
+  const authUrl =
+    `${domain}?response_type=code` +
+    `&client_id=${clientId}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${scope}` +
+    `&state=${hireRocksOrgId}` +
+    `&prompt=consent` +
+    `&access_type=offline`;
+
+  // Open OAuth in popup window
   const popup = window.open(
     authUrl,
     "salesforce_oauth",
@@ -32,15 +41,27 @@ export function loginToSalesforce() {
 }
 
 export function attachSalesforceTokenListener(onToken) {
+  const allowedOrigin =
+    process.env.REACT_APP_REDIRECT_ORIGIN || window.location.origin;
+
   function handler(event) {
-    if (event.origin !== window.location.origin) return;
+    // Security: Only accept messages from trusted redirect origin
+    if (event.origin !== allowedOrigin) {
+      console.warn("Blocked message from untrusted origin:", event.origin);
+      return;
+    }
 
     if (event.data?.type === "SF_TOKEN") {
       onToken(event.data.token);
     }
+
+    if (event.data?.type === "SF_CODE") {
+      onToken(event.data.code);
+    }
   }
 
   window.addEventListener("message", handler);
+
   return () => window.removeEventListener("message", handler);
 }
 

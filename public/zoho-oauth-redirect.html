@@ -12,6 +12,10 @@
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const searchParams = new URLSearchParams(window.location.search);
 
+            const authCode =
+                searchParams.get("code") ||
+                hashParams.get("code");
+
             const accessToken =
                 hashParams.get("access_token") ||
                 searchParams.get("accessToken");
@@ -21,8 +25,8 @@
                 searchParams.get("source") ||
                 "zoho";
 
-            if (!accessToken) {
-                console.error("No access token found in redirect URL");
+            if (!accessToken && !authCode) {
+                console.error("No OAuth token OR code found.");
                 window.close();
                 return;
             }
@@ -32,14 +36,20 @@
             else if (platform === "salesforce") type = "SF_TOKEN";
             else type = "OAUTH_TOKEN";
 
-            // IMPORTANT FIX: Allow Salesforce opener to receive the message
-            const origin = searchParams.get("origin") || "*";
 
-            window.opener.postMessage(
-                { type, token: accessToken },
-                origin
-            );
+            const origin = searchParams.get("origin") || window.location.origin;
 
+            if (authCode) {
+                window.opener.postMessage(
+                    { type, code: authCode, platform },
+                    origin
+                );
+            } else {
+                window.opener.postMessage(
+                    { type, token: accessToken, platform },
+                    origin
+                );
+            }
 
             window.close();
         })();
